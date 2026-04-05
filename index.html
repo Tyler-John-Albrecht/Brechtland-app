@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Brechtland AI Receptionist Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    html, body { margin: 0; padding: 0; height: 100vh; background-color: #f3f5f8; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif; }
+    * { box-sizing: border-box; }
+    input, select, textarea, button { font-family: inherit; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useCallback, useRef } = React;
+
+    // ═══════════════════════════════════════════════════════
+    // CONFIG
+    // ═══════════════════════════════════════════════════════
+    const API = 'https://brechtland-receptionist-production.up.railway.app';
+
+    // ─── API Helper ──────────────────────────────────────
+    async function apiFetch(path, options = {}) {
+      const token = localStorage.getItem('br_token');
+      const res = await fetch(API + path, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(options.headers || {}),
+        },
+        body: options.body ? JSON.stringify(options.body) : undefined,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Request failed');
+      return data;
+    }
+
+    // ─── Icons ───────────────────────────────────────────
+    const Icon = ({ name, size = 20 }) => {
+      const s = { width: size, height: size, display: "inline-block", verticalAlign: "middle" };
+      const icons = {
+        phone: <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>,
+        sms: <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+        chat: <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>,
+        users: <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+        calendar: <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+        chart: <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
+        book: <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>,
+        settings: <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
+        target: <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
+        alert: <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+        check: <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+        x: <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+        plus: <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+        arrow: <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>,
+        clock: <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+        smile: <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>,
+        home: <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+        edit: <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+        trash: <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
+        logout: <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
+      };
+      return icons[name] || null;
+    };
+
+    // ─── Utilities ───────────────────────────────────────
+    const fmt = {
+      duration: (ms) => ms ? `${Math.round(ms / 1000)}s` : "—",
+      time: (iso) => new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+      date: (iso) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      datetime: (iso) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }),
+      intent: (i) => (i || "").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()),
+      pct: (n, total) => total > 0 ? Math.round((n / total) * 100) : 0,
+      initials: (name) => (name || "??").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2),
+    };
+
+    const CHANNEL_COLORS = { voice: "#3b82f6", sms: "#8b5cf6", chat: "#10b981", email: "#f59e0b" };
+    const STATUS_COLORS = { resolved: "#10b981", escalated: "#f59e0b", active: "#3b82f6", abandoned: "#6b7280" };
+    const URGENCY_COLORS = { low: "#6b7280", normal: "#3b82f6", high: "#f59e0b", emergency: "#ef4444" };
+
+    // ─── Shared UI Components ────────────────────────────
+    const Badge = ({ label, color = "#6b7280", bg }) => (
+      <span style={{ display: "inline-flex", alignItems: "center", fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 100, color, background: bg || color + "18", textTransform: "capitalize", letterSpacing: 0.3, whiteSpace: "nowrap" }}>{label}</span>
+    );
+    const ChannelBadge = ({ channel }) => <Badge label={channel} color={CHANNEL_COLORS[channel]} />;
+    const StatusBadge = ({ status }) => <Badge label={status} color={STATUS_COLORS[status]} />;
+
+    const StatCard = ({ icon, label, value, sub, color = "#1b3a5c" }) => (
+      <div style={{ background: "#fff", borderRadius: 14, padding: "20px 22px", border: "1px solid #e8ecf1", position: "relative", overflow: "hidden" }}
+        onMouseEnter={e => e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.06)"}
+        onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}>
+        <div style={{ position: "absolute", top: 0, left: 0, width: 4, height: "100%", background: color, borderRadius: "14px 0 0 14px" }} />
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "#8896a7", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8 }}>{label}</div>
+            <div style={{ fontSize: 30, fontWeight: 700, color: "#0f1b2d", lineHeight: 1 }}>{value ?? "—"}</div>
+            {sub && <div style={{ fontSize: 12, color: "#8896a7", marginTop: 6 }}>{sub}</div>}
+          </div>
+          <div style={{ color, opacity: 0.6 }}><Icon name={icon} size={24} /></div>
+        </div>
+      </div>
+    );
+
+    const MiniChart = ({ data, height = 120 }) => {
+      if (!data || data.length === 0) return <div style={{ height, display: "flex", alignItems: "center", justifyContent: "center", color: "#adb5c2", fontSize: 13 }}>No data yet</div>;
+      const max = Math.max(...data.map(d => (d.voice || 0) + (d.sms || 0) + (d.chat || 0)), 1);
+      return (
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 2, height, padding: "0 2px" }}>
+          {data.map((d, i) => {
+            const total = (d.voice || 0) + (d.sms || 0) + (d.chat || 0);
+            const h = (total / max) * height;
+            return (
+              <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%" }}
+                title={`${d.date}: ${d.voice} calls, ${d.sms} SMS, ${d.chat} chat`}>
+                <div style={{ width: "100%", maxWidth: 12, borderRadius: 3, overflow: "hidden", height: Math.max(2, h) }}>
+                  <div style={{ background: CHANNEL_COLORS.voice, height: (d.voice / Math.max(total, 1)) * 100 + "%" }} />
+                  <div style={{ background: CHANNEL_COLORS.sms, height: (d.sms / Math.max(total, 1)) * 100 + "%" }} />
+                  <div style={{ background: CHANNEL_COLORS.chat, height: (d.chat / Math.max(total, 1)) * 100 + "%" }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    };
+
+    const Spinner = () => (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 40 }}>
+        <div style={{ width: 32, height: 32, border: "3px solid #e8ecf1", borderTopColor: "#1b3a5c", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      </div>
+    );
+
+    const EmptyState = ({ message }) => (
+      <div style={{ textAlign: "center", padding: "48px 24px", color: "#adb5c2" }}>
+        <div style={{ fontSize: 40, marginBottom: 12 }}>📭</div>
+        <div style={{ fontSize: 14, fontWeight: 500 }}>{message || "No data yet"}</div>
+        <div style={{ fontSize: 12, marginTop: 6 }}>Data will appear here once calls start coming in.</div>
+      </div>
+    );
+
+    // ═══════════════════════════════════════════════════════
+    // AUTH SCREEN — Login + Signup
+    // ═══════════════════════════════════════════════════════
+    function AuthScreen({ onAuth }) {
+      const [mode, setMode] = useState("login"); // "login" | "signup"
+      const [email, setEmail] = useState("");
+      const [password, setPassword] = useState("");
+      const [confirm, setConfirm] = useState("");
+      const [loading, setLoading] = useState(false);
+      const [error, setError] = useState("");
+
+      const fieldStyle = { width: "100%", padding: "12px 14px", borderRadius: 10, border: "1px solid #d4d9e0", fontSize: 14, outline: "none", marginBottom: 14, background: "#fff" };
+      const btnStyle = { width: "100%", padding: "13px", borderRadius: 10, border: "none", cursor: "pointer", fontSize: 14, fontWeight: 700, background: "#0f1b2d", color: "#fff", letterSpacing: 0.3 };
+
+      async function handleSubmit(e) {
+        e.preventDefault();
+        setError("");
+        if (mode === "signup" && password !== confirm) { setError("Passwords don't match."); return; }
+        if (password.length < 8) { setError("Password must be at least 8 characters."); return; }
+        setLoading(true);
+        try {
+          const path = mode === "signup" ? "/api/v1/auth/signup" : "/api/v1/auth/login";
+          const data = await apiFetch(path, { method: "POST", body: { email, password } });
+          localStorage.setItem("br_token", data.token);
+          onAuth(data.business);
+        } catch (err) {
+          setError(err.message);
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      return (
+        <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f3f5f8" }}>
+          <div style={{ width: "100%", maxWidth: 420, padding: "0 20px" }}>
+            <div style={{ textAlign: "center", marginBottom: 32 }}>
+              <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: 1.5, color: "#0f1b2d" }}>BRECHTLAND</div>
+              <div style={{ fontSize: 13, color: "#8896a7", marginTop: 4 }}>AI Receptionist Portal</div>
+            </div>
+
+            <div style={{ background: "#fff", borderRadius: 16, padding: "32px 28px", border: "1px solid #e8ecf1", boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
+              {/* Tab switcher */}
+              <div style={{ display: "flex", background: "#f3f5f8", borderRadius: 10, padding: 4, marginBottom: 24 }}>
+                {[["login", "Log In"], ["signup", "Create Account"]].map(([m, l]) => (
+                  <button key={m} onClick={() => { setMode(m); setError(""); }} style={{
+                    flex: 1, padding: "9px", border: "none", cursor: "pointer", borderRadius: 8,
+                    fontSize: 13, fontWeight: 600,
+                    background: mode === m ? "#fff" : "transparent",
+                    color: mode === m ? "#0f1b2d" : "#8896a7",
+                    boxShadow: mode === m ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+                    transition: "all 0.15s",
+                  }}>{l}</button>
+                ))}
+              </div>
+
+              <form onSubmit={handleSubmit}>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#3d4f63", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Email Address</label>
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@yourbusiness.com" required style={fieldStyle} autoFocus />
+
+                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#3d4f63", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Password</label>
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={mode === "signup" ? "Min. 8 characters" : "Your password"} required style={fieldStyle} />
+
+                {mode === "signup" && (
+                  <>
+                    <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#3d4f63", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Confirm Password</label>
+                    <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Repeat your password" required style={fieldStyle} />
+                  </>
+                )}
+
+                {error && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "#dc2626", marginBottom: 14 }}>{error}</div>}
+
+                {mode === "signup" && (
+                  <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "#0369a1", marginBottom: 14 }}>
+                    💡 Your email must match what Brechtland has on file for your account.
+                  </div>
+                )}
+
+                <button type="submit" disabled={loading} style={{ ...btnStyle, opacity: loading ? 0.7 : 1 }}>
+                  {loading ? "Please wait..." : mode === "signup" ? "Create My Account" : "Log In"}
+                </button>
+              </form>
+
+              <div style={{ textAlign: "center", marginTop: 20, fontSize: 12, color: "#8896a7" }}>
+                Questions? Email <a href="mailto:tyler@brechtland.com" style={{ color: "#1b3a5c", fontWeight: 600 }}>tyler@brechtland.com</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // PAGE: Overview Dashboard
+    // ═══════════════════════════════════════════════════════
+    const OverviewPage = ({ onViewConversation }) => {
+      const [stats, setStats] = useState(null);
+      const [volume, setVolume] = useState([]);
+      const [conversations, setConversations] = useState([]);
+      const [intents, setIntents] = useState([]);
+      const [loading, setLoading] = useState(true);
+
+      useEffect(() => {
+        Promise.all([
+          apiFetch("/api/v1/client/stats"),
+          apiFetch("/api/v1/client/volume"),
+          apiFetch("/api/v1/client/conversations?limit=6"),
+          apiFetch("/api/v1/client/intents"),
+        ]).then(([s, v, c, i]) => {
+          setStats(s); setVolume(v); setConversations(c); setIntents(i);
+        }).catch(console.error).finally(() => setLoading(false));
+      }, []);
+
+      if (loading) return <Spinner />;
+      const s = stats || {};
+      const resolutionRate = fmt.pct(s.resolved, s.totalConversations);
+
+      return (
+        <div>
+          <div style={{ marginBottom: 28 }}>
+            <h2 style={{ fontSize: 22, fontWeight: 700, color: "#0f1b2d", margin: 0 }}>Dashboard</h2>
+            <p style={{ color: "#8896a7", fontSize: 14, margin: "4px 0 0" }}>All-time overview</p>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 14, marginBottom: 28 }}>
+            <StatCard icon="phone" label="Total Conversations" value={s.totalConversations ?? 0} color="#3b82f6" />
+            <StatCard icon="target" label="Leads Captured" value={s.leadsCaptured ?? 0} color="#8b5cf6" />
+            <StatCard icon="calendar" label="Appointments" value={s.appointmentsBooked ?? 0} color="#10b981" />
+            <StatCard icon="smile" label="Resolution Rate" value={resolutionRate + "%"} sub={`${s.resolved ?? 0} resolved / ${s.escalated ?? 0} escalated`} color="#f59e0b" />
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 18, marginBottom: 28 }}>
+            <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e8ecf1", padding: 22 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <h3 style={{ fontSize: 15, fontWeight: 700, color: "#0f1b2d", margin: 0 }}>Conversation Volume (30 days)</h3>
+                <div style={{ display: "flex", gap: 12, fontSize: 11, fontWeight: 600 }}>
+                  {[["voice", "Calls"], ["sms", "SMS"], ["chat", "Chat"]].map(([k, l]) => (
+                    <span key={k} style={{ display: "flex", alignItems: "center", gap: 4, color: "#8896a7" }}>
+                      <span style={{ width: 8, height: 8, borderRadius: 2, background: CHANNEL_COLORS[k] }} />{l}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <MiniChart data={volume} height={140} />
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#adb5c2", marginTop: 6, padding: "0 2px" }}>
+                <span>30 days ago</span><span>Today</span>
+              </div>
+            </div>
+
+            <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e8ecf1", padding: 22 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: "#0f1b2d", margin: "0 0 18px" }}>By Channel</h3>
+              {[
+                { label: "Voice Calls", count: s.voiceCalls ?? 0, color: CHANNEL_COLORS.voice },
+                { label: "SMS", count: s.smsConversations ?? 0, color: CHANNEL_COLORS.sms },
+                { label: "Web Chat", count: s.chatConversations ?? 0, color: CHANNEL_COLORS.chat },
+              ].map(ch => (
+                <div key={ch.label} style={{ marginBottom: 14 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 600, color: "#3d4f63", marginBottom: 5 }}>
+                    <span>{ch.label}</span><span>{ch.count}</span>
+                  </div>
+                  <div style={{ height: 6, borderRadius: 3, background: "#f0f2f5" }}>
+                    <div style={{ height: "100%", borderRadius: 3, background: ch.color, width: fmt.pct(ch.count, s.totalConversations) + "%", transition: "width 0.6s ease" }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {intents.length > 0 && (
+            <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e8ecf1", padding: 22, marginBottom: 28 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: "#0f1b2d", margin: "0 0 16px" }}>Top Intents</h3>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 }}>
+                {intents.slice(0, 6).map(it => (
+                  <div key={it.intent} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "#f8f9fb", borderRadius: 10 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 8, background: "#e8ecf1", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: "#3d4f63" }}>{it.count}</div>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "#0f1b2d" }}>{fmt.intent(it.intent)}</div>
+                      <div style={{ fontSize: 11, color: "#8896a7" }}>{it.pct}% of total</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e8ecf1", padding: 22 }}>
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: "#0f1b2d", margin: "0 0 16px" }}>Recent Conversations</h3>
+            {conversations.length === 0 ? <EmptyState message="No conversations yet" /> : (
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ borderBottom: "2px solid #f0f2f5" }}>
+                      {["Channel", "Caller", "Intent", "Status", "Duration", "Time"].map(h => (
+                        <th key={h} style={{ textAlign: "left", padding: "8px 10px", color: "#8896a7", fontWeight: 600, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5 }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {conversations.map(c => (
+                      <tr key={c.id} onClick={() => onViewConversation(c)} style={{ borderBottom: "1px solid #f5f6f8", cursor: "pointer" }}
+                        onMouseEnter={e => e.currentTarget.style.background = "#f8f9fb"}
+                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                        <td style={{ padding: "10px" }}><ChannelBadge channel={c.channel} /></td>
+                        <td style={{ padding: "10px", fontWeight: 600, color: "#0f1b2d" }}>{c.caller_name || c.caller_phone || "Unknown"}</td>
+                        <td style={{ padding: "10px", color: "#3d4f63" }}>{fmt.intent(c.primary_intent)}</td>
+                        <td style={{ padding: "10px" }}><StatusBadge status={c.status} /></td>
+                        <td style={{ padding: "10px", color: "#8896a7" }}>{fmt.duration(c.duration_ms)}</td>
+                        <td style={{ padding: "10px", color: "#8896a7" }}>{c.started_at ? fmt.datetime(c.started_at) : "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    // ═══════════════════════════════════════════════════════
+    // PAGE: Conversations
+    // ═══════════════════════════════════════════════════════
+    const ConversationsPage = ({ onViewConversation }) => {
+      const [conversations, setConversations] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [filter, setFilter] = useState("all");
+
+      useEffect(() => {
+        apiFetch(`/api/v1/client/conversations?limit=100${filter !== "all" ? "&channel=" + filter : ""}`)
+          .then(setConversations).catch(console.error).finally(() => setLoading(false));
+      }, [filter]);
+
+      if (loading) return <Spinner />;
+
+      return (
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+            <div>
+              <h2 style={{ fontSize: 22, fontWeight: 700, color: "#0f1b2d", margin: 0 }}>Conversations</h2>
+              <p style={{ color: "#8896a7", fontSize: 14, margin: "4px 0 0" }}>{conversations.length} total</p>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              {["all", "voice", "sms", "chat"].map(ch => (
+                <button key={ch} onClick={() => setFilter(ch)} style={{
+                  padding: "7px 16px", borderRadius: 8, border: "1px solid", fontSize: 12, fontWeight: 600, cursor: "pointer",
+                  background: filter === ch ? "#0f1b2d" : "#fff",
+                  color: filter === ch ? "#fff" : "#3d4f63",
+                  borderColor: filter === ch ? "#0f1b2d" : "#d4d9e0",
+                }}>{ch.charAt(0).toUpperCase() + ch.slice(1)}</button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e8ecf1", padding: 22 }}>
+            {conversations.length === 0 ? <EmptyState message="No conversations yet" /> : (
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ borderBottom: "2px solid #f0f2f5" }}>
+                      {["Channel", "Caller", "Intent", "Status", "Duration", "Sentiment", "Time"].map(h => (
+                        <th key={h} style={{ textAlign: "left", padding: "8px 10px", color: "#8896a7", fontWeight: 600, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5 }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {conversations.map(c => (
+                      <tr key={c.id} onClick={() => onViewConversation(c)} style={{ borderBottom: "1px solid #f5f6f8", cursor: "pointer" }}
+                        onMouseEnter={e => e.currentTarget.style.background = "#f8f9fb"}
+                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                        <td style={{ padding: "10px" }}><ChannelBadge channel={c.channel} /></td>
+                        <td style={{ padding: "10px", fontWeight: 600, color: "#0f1b2d" }}>{c.caller_name || c.caller_phone || "Unknown"}</td>
+                        <td style={{ padding: "10px", color: "#3d4f63" }}>{fmt.intent(c.primary_intent)}</td>
+                        <td style={{ padding: "10px" }}><StatusBadge status={c.status} /></td>
+                        <td style={{ padding: "10px", color: "#8896a7" }}>{fmt.duration(c.duration_ms)}</td>
+                        <td style={{ padding: "10px" }}>
+                          {c.sentiment ? <Badge label={c.sentiment} color={c.sentiment === "positive" ? "#10b981" : c.sentiment === "negative" ? "#ef4444" : "#6b7280"} /> : "—"}
+                        </td>
+                        <td style={{ padding: "10px", color: "#8896a7" }}>{c.started_at ? fmt.datetime(c.started_at) : "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    // ═══════════════════════════════════════════════════════
+    // PANEL: Conversation Detail
+    // ═══════════════════════════════════════════════════════
+    const ConversationDetail = ({ conversation: c, onClose }) => {
+      const [messages, setMessages] = useState([]);
+      const [loading, setLoading] = useState(true);
+
+      useEffect(() => {
+        apiFetch(`/api/v1/client/conversations/${c.id}/messages`)
+          .then(setMessages).catch(console.error).finally(() => setLoading(false));
+      }, [c.id]);
+
+      return (
+        <div style={{ position: "fixed", right: 0, top: 0, bottom: 0, width: 420, background: "#fff", boxShadow: "-4px 0 24px rgba(0,0,0,0.1)", zIndex: 1000, display: "flex", flexDirection: "column" }}>
+          <div style={{ padding: "20px 24px", borderBottom: "1px solid #f0f2f5", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 15, color: "#0f1b2d" }}>{c.caller_name || c.caller_phone || "Unknown Caller"}</div>
+              <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                <ChannelBadge channel={c.channel} />
+                <StatusBadge status={c.status} />
+              </div>
+            </div>
+            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#8896a7", padding: 4 }}><Icon name="x" size={20} /></button>
+          </div>
+          <div style={{ flex: 1, overflowY: "auto", padding: "16px 24px" }}>
+            {loading ? <Spinner /> : messages.length === 0 ? (
+              <div style={{ textAlign: "center", color: "#adb5c2", fontSize: 13, padding: 24 }}>No transcript available</div>
+            ) : messages.map((m, i) => (
+              <div key={i} style={{ marginBottom: 12, display: "flex", flexDirection: "column", alignItems: m.role === "ai" ? "flex-start" : "flex-end" }}>
+                <div style={{ fontSize: 10, color: "#adb5c2", marginBottom: 3, fontWeight: 600, textTransform: "uppercase" }}>{m.role === "ai" ? "AI" : "Caller"}</div>
+                <div style={{
+                  maxWidth: "82%", padding: "10px 14px", borderRadius: 12, fontSize: 13, lineHeight: 1.55,
+                  background: m.role === "ai" ? "#f3f5f8" : "#0f1b2d",
+                  color: m.role === "ai" ? "#0f1b2d" : "#fff",
+                  borderBottomLeftRadius: m.role === "ai" ? 2 : 12,
+                  borderBottomRightRadius: m.role === "ai" ? 12 : 2,
+                }}>{m.content}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    // ═══════════════════════════════════════════════════════
+    // PAGE: Leads
+    // ═══════════════════════════════════════════════════════
+    const LeadsPage = () => {
+      const [leads, setLeads] = useState([]);
+      const [loading, setLoading] = useState(true);
+
+      useEffect(() => {
+        apiFetch("/api/v1/client/leads").then(setLeads).catch(console.error).finally(() => setLoading(false));
+      }, []);
+
+      if (loading) return <Spinner />;
+
+      return (
+        <div>
+          <div style={{ marginBottom: 24 }}>
+            <h2 style={{ fontSize: 22, fontWeight: 700, color: "#0f1b2d", margin: 0 }}>Leads</h2>
+            <p style={{ color: "#8896a7", fontSize: 14, margin: "4px 0 0" }}>{leads.length} captured</p>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 14, marginBottom: 24 }}>
+            <StatCard icon="users" label="New Leads" value={leads.filter(l => l.urgency !== "emergency").length} color="#3b82f6" />
+            <StatCard icon="alert" label="Emergencies" value={leads.filter(l => l.urgency === "emergency").length} color="#ef4444" />
+            <StatCard icon="phone" label="From Voice" value={leads.filter(l => l.source_channel === "voice").length} color="#8b5cf6" />
+            <StatCard icon="sms" label="From SMS/Chat" value={leads.filter(l => l.source_channel !== "voice").length} color="#10b981" />
+          </div>
+
+          <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e8ecf1", padding: 22 }}>
+            {leads.length === 0 ? <EmptyState message="No leads captured yet" /> : (
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ borderBottom: "2px solid #f0f2f5" }}>
+                      {["Name", "Phone", "Service", "Urgency", "Source", "Date"].map(h => (
+                        <th key={h} style={{ textAlign: "left", padding: "8px 10px", color: "#8896a7", fontWeight: 600, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5 }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {leads.map(l => (
+                      <tr key={l.id} style={{ borderBottom: "1px solid #f5f6f8" }}>
+                        <td style={{ padding: "10px", fontWeight: 600, color: "#0f1b2d" }}>{l.name}</td>
+                        <td style={{ padding: "10px", color: "#3d4f63" }}>{l.phone || "—"}</td>
+                        <td style={{ padding: "10px", color: "#3d4f63" }}>{l.service_type || "—"}</td>
+                        <td style={{ padding: "10px" }}><Badge label={l.urgency || "normal"} color={URGENCY_COLORS[l.urgency] || "#6b7280"} /></td>
+                        <td style={{ padding: "10px" }}><ChannelBadge channel={l.source_channel || "voice"} /></td>
+                        <td style={{ padding: "10px", color: "#8896a7" }}>{l.created_at ? fmt.datetime(l.created_at) : "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    // ═══════════════════════════════════════════════════════
+    // PAGE: Knowledge Base
+    // ═══════════════════════════════════════════════════════
+    const KnowledgeBasePage = () => {
+      const [entries, setEntries] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [adding, setAdding] = useState(false);
+      const [saving, setSaving] = useState(false);
+      const [newEntry, setNewEntry] = useState({ category: "faq", question: "", answer: "", priority: 5 });
+      const [editId, setEditId] = useState(null);
+      const [editData, setEditData] = useState({});
+      const [toast, setToast] = useState("");
+
+      const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 3000); };
+
+      useEffect(() => {
+        apiFetch("/api/v1/client/knowledge-base").then(setEntries).catch(console.error).finally(() => setLoading(false));
+      }, []);
+
+      async function handleAdd() {
+        if (!newEntry.question || !newEntry.answer) return;
+        setSaving(true);
+        try {
+          const result = await apiFetch("/api/v1/client/knowledge-base", { method: "POST", body: newEntry });
+          setEntries([{ ...newEntry, id: result.id, is_active: true }, ...entries]);
+          setNewEntry({ category: "faq", question: "", answer: "", priority: 5 });
+          setAdding(false);
+          showToast("Entry added ✓");
+        } catch (err) { showToast("Failed to add: " + err.message); }
+        finally { setSaving(false); }
+      }
+
+      async function handleDelete(id) {
+        if (!confirm("Delete this entry?")) return;
+        try {
+          await apiFetch(`/api/v1/client/knowledge-base/${id}`, { method: "DELETE" });
+          setEntries(entries.filter(e => e.id !== id));
+          showToast("Deleted ✓");
+        } catch (err) { showToast("Failed to delete"); }
+      }
+
+      function handleEditStart(entry) {
+        setEditId(entry.id);
+        setEditData({ category: entry.category, question: entry.question, answer: entry.answer, priority: entry.priority });
+      }
+
+      async function handleEditSave(id) {
+        try {
+          await apiFetch(`/api/v1/client/knowledge-base/${id}`, { method: "PUT", body: editData });
+          setEntries(entries.map(e => e.id === id ? { ...e, ...editData } : e));
+          setEditId(null);
+          showToast("Saved ✓");
+        } catch (err) { showToast("Failed to save"); }
+      }
+
+      async function handleToggle(entry) {
+        try {
+          await apiFetch(`/api/v1/client/knowledge-base/${entry.id}`, { method: "PUT", body: { is_active: !entry.is_active } });
+          setEntries(entries.map(e => e.id === entry.id ? { ...e, is_active: !e.is_active } : e));
+        } catch (err) { showToast("Failed to update"); }
+      }
+
+      const inputStyle = { width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid #d4d9e0", fontSize: 13, outline: "none" };
+      const categories = ["faq", "service", "hours", "policy", "promotion"];
+
+      if (loading) return <Spinner />;
+
+      return (
+        <div>
+          {toast && <div style={{ position: "fixed", bottom: 24, right: 24, background: "#0f1b2d", color: "#fff", padding: "12px 20px", borderRadius: 10, fontSize: 13, fontWeight: 600, zIndex: 9999, boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>{toast}</div>}
+
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+            <div>
+              <h2 style={{ fontSize: 22, fontWeight: 700, color: "#0f1b2d", margin: 0 }}>Knowledge Base</h2>
+              <p style={{ color: "#8896a7", fontSize: 14, margin: "4px 0 0" }}>What your AI knows about your business</p>
+            </div>
+            <button onClick={() => setAdding(!adding)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 10, border: "none", cursor: "pointer", background: "#0f1b2d", color: "#fff", fontSize: 13, fontWeight: 600 }}>
+              <Icon name="plus" size={16} /> Add Entry
+            </button>
+          </div>
+
+          {adding && (
+            <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e8ecf1", padding: 22, marginBottom: 18 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: "#0f1b2d", margin: "0 0 16px" }}>New Knowledge Base Entry</h3>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+                <select value={newEntry.category} onChange={e => setNewEntry({...newEntry, category: e.target.value})} style={inputStyle}>
+                  {categories.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
+                </select>
+                <input type="number" value={newEntry.priority} onChange={e => setNewEntry({...newEntry, priority: parseInt(e.target.value)})} placeholder="Priority (1-10)" style={inputStyle} min={1} max={10} />
+              </div>
+              <input value={newEntry.question} onChange={e => setNewEntry({...newEntry, question: e.target.value})} placeholder="Question (e.g. Do you offer free estimates?)" style={{ ...inputStyle, marginBottom: 10 }} />
+              <textarea value={newEntry.answer} onChange={e => setNewEntry({...newEntry, answer: e.target.value})} placeholder="Answer..." style={{ ...inputStyle, minHeight: 80, resize: "vertical", display: "block" }} />
+              <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+                <button onClick={handleAdd} disabled={saving} style={{ padding: "9px 20px", borderRadius: 8, border: "none", cursor: "pointer", background: "#0f1b2d", color: "#fff", fontSize: 13, fontWeight: 600 }}>{saving ? "Saving..." : "Save Entry"}</button>
+                <button onClick={() => setAdding(false)} style={{ padding: "9px 20px", borderRadius: 8, border: "1px solid #d4d9e0", cursor: "pointer", background: "#fff", color: "#3d4f63", fontSize: 13, fontWeight: 600 }}>Cancel</button>
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {entries.length === 0 ? <EmptyState message="No knowledge base entries yet" /> : entries.map(e => (
+              <div key={e.id} style={{ background: "#fff", borderRadius: 12, border: "1px solid #e8ecf1", padding: "16px 18px", opacity: e.is_active ? 1 : 0.5 }}>
+                {editId === e.id ? (
+                  <div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+                      <select value={editData.category} onChange={ev => setEditData({...editData, category: ev.target.value})} style={inputStyle}>
+                        {categories.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
+                      </select>
+                      <input type="number" value={editData.priority} onChange={ev => setEditData({...editData, priority: parseInt(ev.target.value)})} placeholder="Priority (1-10)" style={inputStyle} min={1} max={10} />
+                    </div>
+                    <input value={editData.question} onChange={ev => setEditData({...editData, question: ev.target.value})} style={{ ...inputStyle, marginBottom: 10 }} />
+                    <textarea value={editData.answer} onChange={ev => setEditData({...editData, answer: ev.target.value})} style={{ ...inputStyle, minHeight: 70, resize: "vertical", display: "block" }} />
+                    <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                      <button onClick={() => handleEditSave(e.id)} style={{ padding: "7px 16px", borderRadius: 7, border: "none", cursor: "pointer", background: "#0f1b2d", color: "#fff", fontSize: 12, fontWeight: 600 }}>Save</button>
+                      <button onClick={() => setEditId(null)} style={{ padding: "7px 16px", borderRadius: 7, border: "1px solid #d4d9e0", cursor: "pointer", background: "#fff", color: "#3d4f63", fontSize: 12, fontWeight: 600 }}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                        <Badge label={e.category} color="#1b3a5c" />
+                        <span style={{ fontSize: 11, color: "#adb5c2" }}>Priority {e.priority}</span>
+                      </div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: "#0f1b2d", marginBottom: 4 }}>{e.question}</div>
+                      <div style={{ fontSize: 13, color: "#3d4f63", lineHeight: 1.55 }}>{e.answer}</div>
+                    </div>
+                    <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                      <button onClick={() => handleToggle(e)} style={{ padding: "6px 12px", borderRadius: 7, border: "1px solid #d4d9e0", cursor: "pointer", background: "#fff", fontSize: 11, fontWeight: 600, color: e.is_active ? "#10b981" : "#adb5c2" }}>
+                        {e.is_active ? "Active" : "Inactive"}
+                      </button>
+                      <button onClick={() => handleEditStart(e)} style={{ padding: "6px 10px", borderRadius: 7, border: "1px solid #d4d9e0", cursor: "pointer", background: "#fff", color: "#3d4f63" }}>
+                        <Icon name="edit" size={14} />
+                      </button>
+                      <button onClick={() => handleDelete(e.id)} style={{ padding: "6px 10px", borderRadius: 7, border: "1px solid #fecaca", cursor: "pointer", background: "#fff", color: "#ef4444" }}>
+                        <Icon name="trash" size={14} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    // ═══════════════════════════════════════════════════════
+    // PAGE: Settings
+    // ═══════════════════════════════════════════════════════
+    const SettingsPage = () => {
+      const [biz, setBiz] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [saving, setSaving] = useState(false);
+      const [toast, setToast] = useState("");
+
+      const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 3000); };
+
+      useEffect(() => {
+        apiFetch("/api/v1/client/business").then(setBiz).catch(console.error).finally(() => setLoading(false));
+      }, []);
+
+      async function handleSave() {
+        setSaving(true);
+        try {
+          await apiFetch("/api/v1/client/business", {
+            method: "PUT",
+            body: {
+              business_hours: biz.business_hours,
+              escalation_phone: biz.escalation_phone,
+              greeting_message: biz.greeting_message,
+              system_prompt: biz.system_prompt,
+              website_url: biz.website_url,
+              phone_number: biz.phone_number,
+            }
+          });
+          showToast("Settings saved ✓");
+        } catch (err) {
+          showToast("Failed to save: " + err.message);
+        } finally {
+          setSaving(false);
+        }
+      }
+
+      if (loading) return <Spinner />;
+      if (!biz) return <EmptyState message="Could not load settings" />;
+
+      const days = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+      const dayLabels = { mon: "Monday", tue: "Tuesday", wed: "Wednesday", thu: "Thursday", fri: "Friday", sat: "Saturday", sun: "Sunday" };
+      const hours = biz.business_hours || {};
+
+      const InputField = ({ label, value, onChange, type = "text", placeholder, hint }) => (
+        <div style={{ marginBottom: 18 }}>
+          <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#3d4f63", marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</label>
+          {type === "textarea"
+            ? <textarea value={value || ""} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={3} style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid #d4d9e0", fontSize: 13, outline: "none", resize: "vertical", fontFamily: "inherit" }} />
+            : <input type={type} value={value || ""} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid #d4d9e0", fontSize: 13, outline: "none" }} />
+          }
+          {hint && <div style={{ fontSize: 11, color: "#adb5c2", marginTop: 4 }}>{hint}</div>}
+        </div>
+      );
+
+      return (
+        <div>
+          {toast && <div style={{ position: "fixed", bottom: 24, right: 24, background: "#0f1b2d", color: "#fff", padding: "12px 20px", borderRadius: 10, fontSize: 13, fontWeight: 600, zIndex: 9999, boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>{toast}</div>}
+
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28 }}>
+            <div>
+              <h2 style={{ fontSize: 22, fontWeight: 700, color: "#0f1b2d", margin: 0 }}>Settings</h2>
+              <p style={{ color: "#8896a7", fontSize: 14, margin: "4px 0 0" }}>Configure your AI receptionist</p>
+            </div>
+            <button onClick={handleSave} disabled={saving} style={{ padding: "11px 24px", borderRadius: 10, border: "none", cursor: "pointer", background: "#0f1b2d", color: "#fff", fontSize: 13, fontWeight: 700, opacity: saving ? 0.7 : 1 }}>
+              {saving ? "Saving..." : "Save Changes"}
+            </button>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+            <div>
+              <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e8ecf1", padding: 22, marginBottom: 18 }}>
+                <h3 style={{ fontSize: 15, fontWeight: 700, color: "#0f1b2d", margin: "0 0 16px" }}>Business Information</h3>
+                <InputField label="Business Name" value={biz.name} onChange={() => {}} hint="Contact Brechtland to change your business name" />
+                <InputField label="Phone Number" value={biz.phone_number} onChange={v => setBiz({...biz, phone_number: v})} />
+                <InputField label="Email" value={biz.email} onChange={() => {}} hint="Contact Brechtland to change your email" />
+                <InputField label="Website" value={biz.website_url} onChange={v => setBiz({...biz, website_url: v})} />
+              </div>
+
+              <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e8ecf1", padding: 22 }}>
+                <h3 style={{ fontSize: 15, fontWeight: 700, color: "#0f1b2d", margin: "0 0 16px" }}>Business Hours</h3>
+                {days.map(d => (
+                  <div key={d} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                    <span style={{ width: 90, fontSize: 13, fontWeight: 600, color: hours[d] ? "#0f1b2d" : "#adb5c2" }}>{dayLabels[d]}</span>
+                    {hours[d] ? (
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1 }}>
+                        <input type="time" value={hours[d].open || "08:00"} onChange={e => setBiz({...biz, business_hours: {...hours, [d]: {...hours[d], open: e.target.value}}})}
+                          style={{ padding: "5px 8px", borderRadius: 6, border: "1px solid #d4d9e0", fontSize: 12 }} />
+                        <span style={{ color: "#adb5c2" }}>to</span>
+                        <input type="time" value={hours[d].close || "17:00"} onChange={e => setBiz({...biz, business_hours: {...hours, [d]: {...hours[d], close: e.target.value}}})}
+                          style={{ padding: "5px 8px", borderRadius: 6, border: "1px solid #d4d9e0", fontSize: 12 }} />
+                        <button onClick={() => setBiz({...biz, business_hours: {...hours, [d]: null}})}
+                          style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #fecaca", background: "#fff", color: "#ef4444", fontSize: 11, cursor: "pointer" }}>Closed</button>
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 12, color: "#adb5c2", fontStyle: "italic" }}>Closed</span>
+                        <button onClick={() => setBiz({...biz, business_hours: {...hours, [d]: {open: "08:00", close: "17:00"}}})}
+                          style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #d4d9e0", background: "#fff", color: "#3d4f63", fontSize: 11, cursor: "pointer" }}>Set Hours</button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e8ecf1", padding: 22, marginBottom: 18 }}>
+                <h3 style={{ fontSize: 15, fontWeight: 700, color: "#0f1b2d", margin: "0 0 16px" }}>AI Receptionist</h3>
+                <InputField label="Greeting Message" value={biz.greeting_message} type="textarea" onChange={v => setBiz({...biz, greeting_message: v})}
+                  hint="The first thing callers hear when they call" />
+                <InputField label="Custom Instructions" value={biz.system_prompt} type="textarea" onChange={v => setBiz({...biz, system_prompt: v})}
+                  placeholder="Add any special instructions for your AI receptionist..."
+                  hint="These override the default industry template where applicable" />
+              </div>
+
+              <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e8ecf1", padding: 22, marginBottom: 18 }}>
+                <h3 style={{ fontSize: 15, fontWeight: 700, color: "#0f1b2d", margin: "0 0 16px" }}>Escalation</h3>
+                <InputField label="Escalation Phone" value={biz.escalation_phone} onChange={v => setBiz({...biz, escalation_phone: v})}
+                  hint="Where calls get transferred when the AI can't handle it" />
+              </div>
+
+              <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e8ecf1", padding: 22 }}>
+                <h3 style={{ fontSize: 15, fontWeight: 700, color: "#0f1b2d", margin: "0 0 16px" }}>Your AI Receptionist Number</h3>
+                <div style={{ background: "#f8f9fb", borderRadius: 10, padding: 14 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "#8896a7", textTransform: "uppercase", letterSpacing: 0.5 }}>Dedicated Number</div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: "#0f1b2d", fontFamily: "monospace", marginTop: 4 }}>{biz.twilio_number || "—"}</div>
+                  <div style={{ fontSize: 11, color: "#adb5c2", marginTop: 4 }}>Forward your business line here, or use this as your main number</div>
+                </div>
+                <div style={{ marginTop: 14 }}>
+                  <div style={{ fontSize: 12, color: "#8896a7" }}>Industry: <strong style={{ color: "#0f1b2d" }}>{biz.industry?.charAt(0).toUpperCase() + biz.industry?.slice(1)}</strong></div>
+                  <div style={{ fontSize: 12, color: "#8896a7", marginTop: 4 }}>Timezone: <strong style={{ color: "#0f1b2d" }}>{biz.timezone}</strong></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ═══════════════════════════════════════════════════════
+    // MAIN APP
+    // ═══════════════════════════════════════════════════════
+    function App() {
+      const [authState, setAuthState] = useState("checking"); // "checking" | "authed" | "unauthed"
+      const [business, setBusiness] = useState(null);
+      const [page, setPage] = useState("overview");
+      const [selectedConversation, setSelectedConversation] = useState(null);
+
+      // Check for existing token on load
+      useEffect(() => {
+        const token = localStorage.getItem("br_token");
+        if (!token) { setAuthState("unauthed"); return; }
+        apiFetch("/api/v1/auth/me")
+          .then(data => { setBusiness(data.business); setAuthState("authed"); })
+          .catch(() => { localStorage.removeItem("br_token"); setAuthState("unauthed"); });
+      }, []);
+
+      function handleAuth(biz) { setBusiness(biz); setAuthState("authed"); }
+
+      function handleLogout() {
+        localStorage.removeItem("br_token");
+        setBusiness(null);
+        setAuthState("unauthed");
+        setPage("overview");
+      }
+
+      if (authState === "checking") {
+        return (
+          <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f3f5f8" }}>
+            <Spinner />
+          </div>
+        );
+      }
+
+      if (authState === "unauthed") {
+        return <AuthScreen onAuth={handleAuth} />;
+      }
+
+      const nav = [
+        { id: "overview", label: "Dashboard", icon: "home" },
+        { id: "conversations", label: "Conversations", icon: "sms" },
+        { id: "leads", label: "Leads", icon: "target" },
+        { id: "knowledge", label: "Knowledge Base", icon: "book" },
+        { id: "settings", label: "Settings", icon: "settings" },
+      ];
+
+      const initials = business ? fmt.initials(business.name) : "??";
+
+      return (
+        <div style={{ display: "flex", height: "100%", background: "#f3f5f8" }}>
+
+          {/* ─── Sidebar ─── */}
+          <div style={{ width: 240, background: "#0f1b2d", color: "#fff", display: "flex", flexDirection: "column", flexShrink: 0, padding: "20px 0", minHeight: "100vh" }}>
+            <div style={{ padding: "6px 24px 28px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+              <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: 1.5 }}>BRECHTLAND</div>
+              <div style={{ fontSize: 11, color: "#5c7a9a", fontWeight: 500, marginTop: 2 }}>AI Receptionist</div>
+            </div>
+
+            <div style={{ padding: "16px 16px 12px" }}>
+              <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 34, height: 34, borderRadius: 8, background: "#2E8B57", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff", flexShrink: 0 }}>{initials}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{business?.name || "Loading..."}</div>
+                  <div style={{ fontSize: 10, color: "#5c7a9a" }}>{business?.industry || ""}</div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ flex: 1, padding: "4px 10px" }}>
+              {nav.map(n => (
+                <button key={n.id} onClick={() => { setPage(n.id); setSelectedConversation(null); }} style={{
+                  width: "100%", display: "flex", alignItems: "center", gap: 12,
+                  padding: "10px 14px", borderRadius: 10, border: "none", cursor: "pointer",
+                  background: page === n.id ? "rgba(46,139,87,0.18)" : "transparent",
+                  color: page === n.id ? "#4ade80" : "#7b92a9",
+                  fontSize: 13, fontWeight: page === n.id ? 600 : 500,
+                  marginBottom: 2, transition: "all 0.15s", textAlign: "left",
+                }}
+                onMouseEnter={e => { if (page !== n.id) e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
+                onMouseLeave={e => { if (page !== n.id) e.currentTarget.style.background = "transparent"; }}>
+                  <Icon name={n.icon} size={18} />{n.label}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ padding: "16px 20px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#5c7a9a", marginBottom: 12 }}>
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#10b981", boxShadow: "0 0 6px #10b981" }} />
+                AI Receptionist Active
+              </div>
+              <button onClick={handleLogout} style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", cursor: "pointer", color: "#5c7a9a", fontSize: 12, padding: 0 }}>
+                <Icon name="logout" size={14} /> Log Out
+              </button>
+            </div>
+          </div>
+
+          {/* ─── Main Content ─── */}
+          <div style={{ flex: 1, overflowY: "auto", padding: "28px 32px" }}>
+            {page === "overview" && <OverviewPage onViewConversation={setSelectedConversation} />}
+            {page === "conversations" && <ConversationsPage onViewConversation={setSelectedConversation} />}
+            {page === "leads" && <LeadsPage />}
+            {page === "knowledge" && <KnowledgeBasePage />}
+            {page === "settings" && <SettingsPage />}
+          </div>
+
+          {/* ─── Conversation Detail Panel ─── */}
+          {selectedConversation && (
+            <>
+              <div onClick={() => setSelectedConversation(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.2)", zIndex: 999 }} />
+              <ConversationDetail conversation={selectedConversation} onClose={() => setSelectedConversation(null)} />
+            </>
+          )}
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
