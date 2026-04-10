@@ -825,6 +825,46 @@
     };
 
 
+    // ─── AI Profile sub-components (defined outside to preserve focus) ──────────
+    const ProfileField = ({ label, name, type, placeholder, hint, rows, profile, set }) => (
+      <div style={{ marginBottom: 18 }}>
+        <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#3d4f63", marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</label>
+        {type === "textarea"
+          ? <textarea value={profile[name] || ""} onChange={e => set(name, e.target.value)} placeholder={placeholder} rows={rows || 3}
+              style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid #d4d9e0", fontSize: 13, outline: "none", resize: "vertical", fontFamily: "inherit", lineHeight: 1.55 }} />
+          : <input type="text" value={profile[name] || ""} onChange={e => set(name, e.target.value)} placeholder={placeholder}
+              style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid #d4d9e0", fontSize: 13, outline: "none" }} />
+        }
+        {hint && <div style={{ fontSize: 11, color: "#adb5c2", marginTop: 4 }}>{hint}</div>}
+      </div>
+    );
+
+    const ProfileRadio = ({ label, name, options, hint, profile, set }) => (
+      <div style={{ marginBottom: 18 }}>
+        <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#3d4f63", marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</label>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {options.map(o => (
+            <button key={o.v} onClick={() => set(name, o.v)} style={{
+              padding: "8px 14px", borderRadius: 8, border: "1px solid",
+              borderColor: profile[name] === o.v ? "#1b3a5c" : "#d4d9e0",
+              background: profile[name] === o.v ? "#1b3a5c" : "#fff",
+              color: profile[name] === o.v ? "#fff" : "#3d4f63",
+              fontSize: 13, cursor: "pointer", fontWeight: profile[name] === o.v ? 600 : 400,
+              transition: "all 0.15s"
+            }}>{o.l}</button>
+          ))}
+        </div>
+        {hint && <div style={{ fontSize: 11, color: "#adb5c2", marginTop: 4 }}>{hint}</div>}
+      </div>
+    );
+
+    const ProfileCard = ({ title, children }) => (
+      <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e8ecf1", padding: 22, marginBottom: 18 }}>
+        <h3 style={{ fontSize: 15, fontWeight: 700, color: "#0f1b2d", margin: "0 0 18px", paddingBottom: 12, borderBottom: "1px solid #f0f2f5" }}>{title}</h3>
+        {children}
+      </div>
+    );
+
     // ═══════════════════════════════════════════════════════
     // PAGE: AI Profile
     // ═══════════════════════════════════════════════════════
@@ -866,45 +906,6 @@
 
       const set = (key, val) => setProfile(p => ({ ...p, [key]: val }));
 
-      const Field = ({ label, name, type = "text", placeholder, hint, rows = 3 }) => (
-        <div style={{ marginBottom: 18 }}>
-          <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#3d4f63", marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</label>
-          {type === "textarea"
-            ? <textarea value={profile[name] || ""} onChange={e => set(name, e.target.value)} placeholder={placeholder} rows={rows}
-                style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid #d4d9e0", fontSize: 13, outline: "none", resize: "vertical", fontFamily: "inherit", lineHeight: 1.55 }} />
-            : <input type="text" value={profile[name] || ""} onChange={e => set(name, e.target.value)} placeholder={placeholder}
-                style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid #d4d9e0", fontSize: 13, outline: "none" }} />
-          }
-          {hint && <div style={{ fontSize: 11, color: "#adb5c2", marginTop: 4 }}>{hint}</div>}
-        </div>
-      );
-
-      const RadioField = ({ label, name, options, hint }) => (
-        <div style={{ marginBottom: 18 }}>
-          <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#3d4f63", marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</label>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {options.map(o => (
-              <button key={o.v} onClick={() => set(name, o.v)} style={{
-                padding: "8px 14px", borderRadius: 8, border: "1px solid",
-                borderColor: profile[name] === o.v ? "#1b3a5c" : "#d4d9e0",
-                background: profile[name] === o.v ? "#1b3a5c" : "#fff",
-                color: profile[name] === o.v ? "#fff" : "#3d4f63",
-                fontSize: 13, cursor: "pointer", fontWeight: profile[name] === o.v ? 600 : 400,
-                transition: "all 0.15s"
-              }}>{o.l}</button>
-            ))}
-          </div>
-          {hint && <div style={{ fontSize: 11, color: "#adb5c2", marginTop: 4 }}>{hint}</div>}
-        </div>
-      );
-
-      const Card = ({ title, children }) => (
-        <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e8ecf1", padding: 22, marginBottom: 18 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700, color: "#0f1b2d", margin: "0 0 18px", paddingBottom: 12, borderBottom: "1px solid #f0f2f5" }}>{title}</h3>
-          {children}
-        </div>
-      );
-
       if (loading) return <Spinner />;
 
       return (
@@ -929,46 +930,46 @@
 
             {/* Left column */}
             <div>
-              <Card title="🏢 Business Basics">
-                <Field name="business_name" label="Business Name" placeholder="As you want the AI to say it on every call" hint="The AI greets callers with this name" />
-                <Field name="service_area" label="Service Area" placeholder="e.g. Dallas-Fort Worth metro, all of Texas" />
-                <Field name="years_in_business" label="Years in Business" placeholder="e.g. 12 years, Family-owned since 2008" />
-                <Field name="services" label="Top Services" type="textarea" placeholder={"1. Service name — brief description | 2. Service name — brief description | 3. Service name — brief description"} rows={5} hint="The AI will reference these when callers ask what you do" />
-                <Field name="pricing_info" label="Pricing Info" type="textarea" placeholder={"e.g. Starting at $X for... | Leave blank if you never quote prices on the phone"} rows={3} hint="Leave blank to have the AI avoid pricing conversations" />
-                <RadioField name="free_estimates" label="Free Estimates?" options={[{v:"yes",l:"Yes"},{v:"sometimes",l:"Sometimes"},{v:"no",l:"No"}]} />
-                <RadioField name="financing" label="Financing Available?" options={[{v:"yes",l:"Yes"},{v:"sometimes",l:"Case by case"},{v:"no",l:"No"}]} />
-              </Card>
+              <ProfileCard title="🏢 Business Basics">
+                <ProfileField profile={profile} set={set} name="business_name" label="Business Name" placeholder="As you want the AI to say it on every call" hint="The AI greets callers with this name" />
+                <ProfileField profile={profile} set={set} name="service_area" label="Service Area" placeholder="e.g. Dallas-Fort Worth metro, all of Texas" />
+                <ProfileField profile={profile} set={set} name="years_in_business" label="Years in Business" placeholder="e.g. 12 years, Family-owned since 2008" />
+                <ProfileField profile={profile} set={set} name="services" label="Top Services" type="textarea" placeholder={"1. Service name — brief description | 2. Service name — brief description | 3. Service name — brief description"} rows={5} hint="The AI will reference these when callers ask what you do" />
+                <ProfileField profile={profile} set={set} name="pricing_info" label="Pricing Info" type="textarea" placeholder={"e.g. Starting at $X for... | Leave blank if you never quote prices on the phone"} rows={3} hint="Leave blank to have the AI avoid pricing conversations" />
+                <ProfileRadio profile={profile} set={set} name="free_estimates" label="Free Estimates?" options={[{v:"yes",l:"Yes"},{v:"sometimes",l:"Sometimes"},{v:"no",l:"No"}]} />
+                <ProfileRadio profile={profile} set={set} name="financing" label="Financing Available?" options={[{v:"yes",l:"Yes"},{v:"sometimes",l:"Case by case"},{v:"no",l:"No"}]} />
+              </ProfileCard>
 
-              <Card title="⭐ What Makes You Different">
-                <Field name="unique_selling_points" label="Competitive Advantages" type="textarea" placeholder={"- Licensed and insured | - Same-day service available | - 10-year labor warranty | - Family-owned, not a franchise"} rows={5} hint="The AI will use these when callers ask why they should choose you" />
-                <Field name="credentials" label="Licenses, Certifications & Awards" type="textarea" placeholder={"e.g. | - State Contractor License #12345 | - $2M liability insurance | - BBB A+ rated"} rows={4} />
-              </Card>
+              <ProfileCard title="⭐ What Makes You Different">
+                <ProfileField profile={profile} set={set} name="unique_selling_points" label="Competitive Advantages" type="textarea" placeholder={"- Licensed and insured | - Same-day service available | - 10-year labor warranty | - Family-owned, not a franchise"} rows={5} hint="The AI will use these when callers ask why they should choose you" />
+                <ProfileField profile={profile} set={set} name="credentials" label="Licenses, Certifications & Awards" type="textarea" placeholder={"e.g. | - State Contractor License #12345 | - $2M liability insurance | - BBB A+ rated"} rows={4} />
+              </ProfileCard>
 
-              <Card title="🧠 AI Instructions">
-                <Field name="always_say" label="Always Say / Mention" type="textarea" placeholder="e.g. Always mention we offer a free inspection. Always bring up our financing." rows={3} />
-                <Field name="never_say" label="Never Say / Promise" type="textarea" placeholder="e.g. Never quote exact prices. Never promise same-day without checking availability." rows={3} />
-                <Field name="additional_info" label="Anything Else the AI Should Know" type="textarea" placeholder="Seasonal promos, awards, special programs, team size — anything that helps the AI represent you better." rows={4} />
-              </Card>
+              <ProfileCard title="🧠 AI Instructions">
+                <ProfileField profile={profile} set={set} name="always_say" label="Always Say / Mention" type="textarea" placeholder="e.g. Always mention we offer a free inspection. Always bring up our financing." rows={3} />
+                <ProfileField profile={profile} set={set} name="never_say" label="Never Say / Promise" type="textarea" placeholder="e.g. Never quote exact prices. Never promise same-day without checking availability." rows={3} />
+                <ProfileField profile={profile} set={set} name="additional_info" label="Anything Else the AI Should Know" type="textarea" placeholder="Seasonal promos, awards, special programs, team size — anything that helps the AI represent you better." rows={4} />
+              </ProfileCard>
             </div>
 
             {/* Right column */}
             <div>
-              <Card title="❓ Common Questions">
-                <Field name="common_questions" label="FAQs — Questions & Answers" type="textarea" placeholder={"Q: How long does the job take? A: Most jobs are done in 1-2 days | Q: Are you licensed? A: Yes, fully licensed and insured in [state] | Q: Do you work with insurance? A: Yes, we handle the full claims process"} rows={8} hint="Write in Q: / A: format. The AI will use these to answer caller questions accurately." />
-              </Card>
+              <ProfileCard title="❓ Common Questions">
+                <ProfileField profile={profile} set={set} name="common_questions" label="FAQs — Questions & Answers" type="textarea" placeholder={"Q: How long does the job take? A: Most jobs are done in 1-2 days | Q: Are you licensed? A: Yes, fully licensed and insured in [state] | Q: Do you work with insurance? A: Yes, we handle the full claims process"} rows={8} hint="Write in Q: / A: format. The AI will use these to answer caller questions accurately." />
+              </ProfileCard>
 
-              <Card title="🚨 Emergency & Operations">
-                <RadioField name="emergency_service" label="Emergency / Same-Day Service?" options={[{v:"yes",l:"Yes"},{v:"no",l:"No"}]} />
-                <Field name="emergency_details" label="Emergency Details & Response Time" type="textarea" placeholder="What counts as an emergency? How fast do you respond? e.g. Active leaks, same-day dispatch within 4 hours." rows={3} />
-                <RadioField name="works_with_insurance" label="Work With Insurance?" options={[{v:"yes",l:"Yes"},{v:"sometimes",l:"Sometimes"},{v:"no",l:"No"}]} />
-                <Field name="turnaround_time" label="Typical Turnaround / Lead Time" placeholder="e.g. Inspections within 48 hours, jobs booked 1-2 weeks out" />
-                <Field name="service_restrictions" label="Areas or Jobs You Do NOT Take" type="textarea" placeholder="e.g. No jobs over 50 miles from Dallas. No commercial properties over 3 stories." rows={3} />
-                <RadioField name="after_hours_booking" label="Book Appointments After Hours?" options={[{v:"yes",l:"Yes - book 24/7"},{v:"no",l:"No - take a message only"}]} hint="Controls what the AI does when someone calls outside business hours" />
-              </Card>
+              <ProfileCard title="🚨 Emergency & Operations">
+                <ProfileRadio profile={profile} set={set} name="emergency_service" label="Emergency / Same-Day Service?" options={[{v:"yes",l:"Yes"},{v:"no",l:"No"}]} />
+                <ProfileField profile={profile} set={set} name="emergency_details" label="Emergency Details & Response Time" type="textarea" placeholder="What counts as an emergency? How fast do you respond? e.g. Active leaks, same-day dispatch within 4 hours." rows={3} />
+                <ProfileRadio profile={profile} set={set} name="works_with_insurance" label="Work With Insurance?" options={[{v:"yes",l:"Yes"},{v:"sometimes",l:"Sometimes"},{v:"no",l:"No"}]} />
+                <ProfileField profile={profile} set={set} name="turnaround_time" label="Typical Turnaround / Lead Time" placeholder="e.g. Inspections within 48 hours, jobs booked 1-2 weeks out" />
+                <ProfileField profile={profile} set={set} name="service_restrictions" label="Areas or Jobs You Do NOT Take" type="textarea" placeholder="e.g. No jobs over 50 miles from Dallas. No commercial properties over 3 stories." rows={3} />
+                <ProfileRadio profile={profile} set={set} name="after_hours_booking" label="Book Appointments After Hours?" options={[{v:"yes",l:"Yes - book 24/7"},{v:"no",l:"No - take a message only"}]} hint="Controls what the AI does when someone calls outside business hours" />
+              </ProfileCard>
 
-              <Card title="📞 Call Handling">
-                <Field name="escalation_notes" label="Always Escalate to a Human For..." type="textarea" placeholder="e.g. Insurance claims, jobs over $10k, any mention of a lawsuit, existing customer complaints" rows={3} hint="These situations will always be transferred to your escalation number" />
-              </Card>
+              <ProfileCard title="📞 Call Handling">
+                <ProfileField profile={profile} set={set} name="escalation_notes" label="Always Escalate to a Human For..." type="textarea" placeholder="e.g. Insurance claims, jobs over $10k, any mention of a lawsuit, existing customer complaints" rows={3} hint="These situations will always be transferred to your escalation number" />
+              </ProfileCard>
             </div>
           </div>
 
