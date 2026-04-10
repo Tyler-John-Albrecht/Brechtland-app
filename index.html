@@ -680,6 +680,39 @@
       );
     };
 
+    // ─── Settings page constants & components (module-level to prevent focus loss) ─
+    const BRECHTLAND_GREETING = "Thanks for calling Brechtland! We build custom websites and AI receptionists for local service businesses. How can I help you today?";
+    const BRECHTLAND_INSTRUCTIONS = "You are the AI receptionist for Brechtland, a digital agency based in Florida. We offer done-for-you website subscriptions starting at $149/mo and a 24/7 AI Receptionist for $497/mo flat. We also offer done-for-you email marketing. When a caller asks about getting a website or AI receptionist, invite them to book a free 15-minute strategy call — no obligation. Websites go live in 7–10 business days. The AI Receptionist activates within 48 hours of sign-up. Never guarantee specific search rankings or lead counts. For billing disputes or partnership inquiries, let the caller know Tyler will follow up personally within one business day.";
+
+    const INDUSTRIES = [
+      { value: "general",         label: "General" },
+      { value: "roofing",         label: "Roofing" },
+      { value: "plumbing",        label: "Plumbing" },
+      { value: "hvac",            label: "HVAC" },
+      { value: "electrical",      label: "Electrical" },
+      { value: "dental",          label: "Dental" },
+      { value: "real_estate",     label: "Real Estate" },
+      { value: "restaurant",      label: "Restaurant" },
+      { value: "landscaping",     label: "Landscaping" },
+      { value: "detailing",       label: "Auto Detailing" },
+      { value: "epoxy_flooring",  label: "Epoxy Flooring" },
+      { value: "window_cleaning", label: "Window Cleaning" },
+      { value: "fitness",         label: "Fitness / Gym" },
+      { value: "digital_agency",  label: "Digital Agency" },
+    ];
+
+    const InputField = ({ label, value, onChange, type = "text", placeholder, hint, suggestText }) => (
+      <div style={{ marginBottom: 18 }}>
+        <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#3d4f63", marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</label>
+        {type === "textarea"
+          ? <textarea value={value || ""} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={3} style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid #d4d9e0", fontSize: 13, outline: "none", resize: "vertical", fontFamily: "inherit" }} />
+          : <input type={type} value={value || ""} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid #d4d9e0", fontSize: 13, outline: "none" }} />
+        }
+        {hint && <div style={{ fontSize: 11, color: "#adb5c2", marginTop: 4 }}>{hint}</div>}
+        {suggestText && <button onClick={() => onChange(suggestText)} type="button" style={{ fontSize: 11, color: "#1b3a5c", background: "none", border: "none", cursor: "pointer", padding: "2px 0", fontWeight: 600, textDecoration: "underline", display: "block", marginTop: 4 }}>↻ Prefill Brechtland default</button>}
+      </div>
+    );
+
     // ═══════════════════════════════════════════════════════
     // PAGE: Settings
     // ═══════════════════════════════════════════════════════
@@ -725,39 +758,6 @@
       const days = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
       const dayLabels = { mon: "Monday", tue: "Tuesday", wed: "Wednesday", thu: "Thursday", fri: "Friday", sat: "Saturday", sun: "Sunday" };
       const hours = biz.business_hours || {};
-
-      // ── Brechtland-specific suggested defaults ────────────────────────────
-      const BRECHTLAND_GREETING = "Thanks for calling Brechtland! We build custom websites and AI receptionists for local service businesses. How can I help you today?";
-      const BRECHTLAND_INSTRUCTIONS = "You are the AI receptionist for Brechtland, a digital agency based in Florida. We offer done-for-you website subscriptions starting at $149/mo and a 24/7 AI Receptionist for $497/mo flat. We also offer done-for-you email marketing. When a caller asks about getting a website or AI receptionist, invite them to book a free 15-minute strategy call — no obligation. Websites go live in 7–10 business days. The AI Receptionist activates within 48 hours of sign-up. Never guarantee specific search rankings or lead counts. For billing disputes or partnership inquiries, let the caller know Tyler will follow up personally within one business day.";
-
-      const INDUSTRIES = [
-        { value: "general",         label: "General" },
-        { value: "roofing",         label: "Roofing" },
-        { value: "plumbing",        label: "Plumbing" },
-        { value: "hvac",            label: "HVAC" },
-        { value: "electrical",      label: "Electrical" },
-        { value: "dental",          label: "Dental" },
-        { value: "real_estate",     label: "Real Estate" },
-        { value: "restaurant",      label: "Restaurant" },
-        { value: "landscaping",     label: "Landscaping" },
-        { value: "detailing",       label: "Auto Detailing" },
-        { value: "epoxy_flooring",  label: "Epoxy Flooring" },
-        { value: "window_cleaning", label: "Window Cleaning" },
-        { value: "fitness",         label: "Fitness / Gym" },
-        { value: "digital_agency",  label: "Digital Agency" },
-      ];
-
-      const InputField = ({ label, value, onChange, type = "text", placeholder, hint, suggestText }) => (
-        <div style={{ marginBottom: 18 }}>
-          <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#3d4f63", marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</label>
-          {type === "textarea"
-            ? <textarea value={value || ""} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={3} style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid #d4d9e0", fontSize: 13, outline: "none", resize: "vertical", fontFamily: "inherit" }} />
-            : <input type={type} value={value || ""} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid #d4d9e0", fontSize: 13, outline: "none" }} />
-          }
-          {hint && <div style={{ fontSize: 11, color: "#adb5c2", marginTop: 4 }}>{hint}</div>}
-          {suggestText && <button onClick={() => onChange(suggestText)} type="button" style={{ fontSize: 11, color: "#1b3a5c", background: "none", border: "none", cursor: "pointer", padding: "2px 0", fontWeight: 600, textDecoration: "underline", display: "block", marginTop: 4 }}>↻ Prefill Brechtland default</button>}
-        </div>
-      );
 
       return (
         <div>
