@@ -680,7 +680,11 @@
       );
     };
 
-    // ─── Settings page constants & components (module-level to prevent focus loss) ─
+    // ═══════════════════════════════════════════════════════
+    // PAGE: Settings
+    // ═══════════════════════════════════════════════════════
+    // ─── Settings constants & InputField — defined at MODULE level so React
+    //     never remounts the input on keystroke (prevents focus loss bug) ───────
     const BRECHTLAND_GREETING = "Thanks for calling Brechtland! We build custom websites and AI receptionists for local service businesses. How can I help you today?";
     const BRECHTLAND_INSTRUCTIONS = "You are the AI receptionist for Brechtland, a digital agency based in Florida. We offer done-for-you website subscriptions starting at $149/mo and a 24/7 AI Receptionist for $497/mo flat. We also offer done-for-you email marketing. When a caller asks about getting a website or AI receptionist, invite them to book a free 15-minute strategy call — no obligation. Websites go live in 7–10 business days. The AI Receptionist activates within 48 hours of sign-up. Never guarantee specific search rankings or lead counts. For billing disputes or partnership inquiries, let the caller know Tyler will follow up personally within one business day.";
 
@@ -713,10 +717,7 @@
       </div>
     );
 
-    // ═══════════════════════════════════════════════════════
-    // PAGE: Settings
-    // ═══════════════════════════════════════════════════════
-    const SettingsPage = () => {
+    const SettingsPage = ({ onSettingsUpdate }) => {
       const [biz, setBiz] = useState(null);
       const [loading, setLoading] = useState(true);
       const [saving, setSaving] = useState(false);
@@ -745,6 +746,7 @@
             }
           });
           showToast("Settings saved ✓");
+          if (onSettingsUpdate) onSettingsUpdate({ name: biz.name, industry: biz.industry });
         } catch (err) {
           showToast("Failed to save: " + err.message);
         } finally {
@@ -1022,10 +1024,14 @@
 
       function handleAuth(biz) { setBusiness(biz); setAuthState("authed"); }
 
-      // FIX: called by AIProfilePage after a successful save so the sidebar
-      //      immediately reflects whatever name the user typed in the profile.
+      // Updates sidebar name when AI Profile is saved
       function handleBusinessNameUpdate(name) {
         setBusiness(b => ({ ...b, name }));
+      }
+
+      // Updates sidebar name + industry when Settings page is saved
+      function handleSettingsUpdate({ name, industry }) {
+        setBusiness(b => ({ ...b, name, industry }));
       }
 
       function handleLogout() {
@@ -1113,7 +1119,7 @@
             {page === "leads" && <LeadsPage />}
             {page === "ai-profile" && <AIProfilePage industry={business?.industry} onBusinessNameUpdate={handleBusinessNameUpdate} />}
             {page === "knowledge" && <KnowledgeBasePage />}
-            {page === "settings" && <SettingsPage />}
+            {page === "settings" && <SettingsPage onSettingsUpdate={handleSettingsUpdate} />}
           </div>
 
           {/* ─── Conversation Detail Panel ─── */}
