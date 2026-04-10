@@ -933,24 +933,15 @@
                 <Field name="business_name" label="Business Name" placeholder="As you want the AI to say it on every call" hint="The AI greets callers with this name" />
                 <Field name="service_area" label="Service Area" placeholder="e.g. Dallas-Fort Worth metro, all of Texas" />
                 <Field name="years_in_business" label="Years in Business" placeholder="e.g. 12 years, Family-owned since 2008" />
-                <Field name="services" label="Top Services" type="textarea" placeholder={"1. Service name — brief description
-2. Service name — brief description
-3. Service name — brief description"} rows={5} hint="The AI will reference these when callers ask what you do" />
-                <Field name="pricing_info" label="Pricing Info" type="textarea" placeholder={"e.g. Starting at $X for...
-Leave blank if you never quote prices on the phone"} rows={3} hint="Leave blank to have the AI avoid pricing conversations" />
+                <Field name="services" label="Top Services" type="textarea" placeholder={"1. Service name — brief description | 2. Service name — brief description | 3. Service name — brief description"} rows={5} hint="The AI will reference these when callers ask what you do" />
+                <Field name="pricing_info" label="Pricing Info" type="textarea" placeholder={"e.g. Starting at $X for... | Leave blank if you never quote prices on the phone"} rows={3} hint="Leave blank to have the AI avoid pricing conversations" />
                 <RadioField name="free_estimates" label="Free Estimates?" options={[{v:"yes",l:"Yes"},{v:"sometimes",l:"Sometimes"},{v:"no",l:"No"}]} />
                 <RadioField name="financing" label="Financing Available?" options={[{v:"yes",l:"Yes"},{v:"sometimes",l:"Case by case"},{v:"no",l:"No"}]} />
               </Card>
 
               <Card title="⭐ What Makes You Different">
-                <Field name="unique_selling_points" label="Competitive Advantages" type="textarea" placeholder={"- Licensed and insured
-- Same-day service available
-- 10-year labor warranty
-- Family-owned, not a franchise"} rows={5} hint="The AI will use these when callers ask why they should choose you" />
-                <Field name="credentials" label="Licenses, Certifications & Awards" type="textarea" placeholder={"e.g.
-- State Contractor License #12345
-- $2M liability insurance
-- BBB A+ rated"} rows={4} />
+                <Field name="unique_selling_points" label="Competitive Advantages" type="textarea" placeholder={"- Licensed and insured | - Same-day service available | - 10-year labor warranty | - Family-owned, not a franchise"} rows={5} hint="The AI will use these when callers ask why they should choose you" />
+                <Field name="credentials" label="Licenses, Certifications & Awards" type="textarea" placeholder={"e.g. | - State Contractor License #12345 | - $2M liability insurance | - BBB A+ rated"} rows={4} />
               </Card>
 
               <Card title="🧠 AI Instructions">
@@ -963,9 +954,7 @@ Leave blank if you never quote prices on the phone"} rows={3} hint="Leave blank 
             {/* Right column */}
             <div>
               <Card title="❓ Common Questions">
-                <Field name="common_questions" label="FAQs — Questions & Answers" type="textarea" placeholder={"Q: How long does the job take? A: Most jobs are done in 1-2 days
-Q: Are you licensed? A: Yes, fully licensed and insured in [state]
-Q: Do you work with insurance? A: Yes, we handle the full claims process"} rows={8} hint="Write in Q: / A: format. The AI will use these to answer caller questions accurately." />
+                <Field name="common_questions" label="FAQs — Questions & Answers" type="textarea" placeholder={"Q: How long does the job take? A: Most jobs are done in 1-2 days | Q: Are you licensed? A: Yes, fully licensed and insured in [state] | Q: Do you work with insurance? A: Yes, we handle the full claims process"} rows={8} hint="Write in Q: / A: format. The AI will use these to answer caller questions accurately." />
               </Card>
 
               <Card title="🚨 Emergency & Operations">
