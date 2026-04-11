@@ -148,10 +148,10 @@
     );
 
     // ═══════════════════════════════════════════════════════
-    // AUTH SCREEN
+    // AUTH SCREEN — Login + Signup
     // ═══════════════════════════════════════════════════════
     function AuthScreen({ onAuth }) {
-      const [mode, setMode] = useState("login");
+      const [mode, setMode] = useState("login"); // "login" | "signup"
       const [email, setEmail] = useState("");
       const [password, setPassword] = useState("");
       const [confirm, setConfirm] = useState("");
@@ -186,7 +186,9 @@
               <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: 1.5, color: "#0f1b2d" }}>BRECHTLAND</div>
               <div style={{ fontSize: 13, color: "#8896a7", marginTop: 4 }}>AI Receptionist Portal</div>
             </div>
+
             <div style={{ background: "#fff", borderRadius: 16, padding: "32px 28px", border: "1px solid #e8ecf1", boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
+              {/* Tab switcher */}
               <div style={{ display: "flex", background: "#f3f5f8", borderRadius: 10, padding: 4, marginBottom: 24 }}>
                 {[["login", "Log In"], ["signup", "Create Account"]].map(([m, l]) => (
                   <button key={m} onClick={() => { setMode(m); setError(""); }} style={{
@@ -199,27 +201,34 @@
                   }}>{l}</button>
                 ))}
               </div>
+
               <form onSubmit={handleSubmit}>
                 <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#3d4f63", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Email Address</label>
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@yourbusiness.com" required style={fieldStyle} autoFocus />
+
                 <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#3d4f63", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Password</label>
                 <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={mode === "signup" ? "Min. 8 characters" : "Your password"} required style={fieldStyle} />
+
                 {mode === "signup" && (
                   <>
                     <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#3d4f63", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Confirm Password</label>
                     <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Repeat your password" required style={fieldStyle} />
                   </>
                 )}
+
                 {error && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "#dc2626", marginBottom: 14 }}>{error}</div>}
+
                 {mode === "signup" && (
                   <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "#0369a1", marginBottom: 14 }}>
                     💡 Your email must match what Brechtland has on file for your account.
                   </div>
                 )}
+
                 <button type="submit" disabled={loading} style={{ ...btnStyle, opacity: loading ? 0.7 : 1 }}>
                   {loading ? "Please wait..." : mode === "signup" ? "Create My Account" : "Log In"}
                 </button>
               </form>
+
               <div style={{ textAlign: "center", marginTop: 20, fontSize: 12, color: "#8896a7" }}>
                 Questions? Email <a href="mailto:tyler@brechtland.com" style={{ color: "#1b3a5c", fontWeight: 600 }}>tyler@brechtland.com</a>
               </div>
@@ -260,12 +269,14 @@
             <h2 style={{ fontSize: 22, fontWeight: 700, color: "#0f1b2d", margin: 0 }}>Dashboard</h2>
             <p style={{ color: "#8896a7", fontSize: 14, margin: "4px 0 0" }}>All-time overview</p>
           </div>
+
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 14, marginBottom: 28 }}>
             <StatCard icon="phone" label="Total Conversations" value={s.totalConversations ?? 0} color="#3b82f6" />
             <StatCard icon="target" label="Leads Captured" value={s.leadsCaptured ?? 0} color="#8b5cf6" />
             <StatCard icon="calendar" label="Appointments" value={s.appointmentsBooked ?? 0} color="#10b981" />
             <StatCard icon="smile" label="Resolution Rate" value={resolutionRate + "%"} sub={`${s.resolved ?? 0} resolved / ${s.escalated ?? 0} escalated`} color="#f59e0b" />
           </div>
+
           <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 18, marginBottom: 28 }}>
             <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e8ecf1", padding: 22 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -283,6 +294,7 @@
                 <span>30 days ago</span><span>Today</span>
               </div>
             </div>
+
             <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e8ecf1", padding: 22 }}>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: "#0f1b2d", margin: "0 0 18px" }}>By Channel</h3>
               {[
@@ -301,6 +313,7 @@
               ))}
             </div>
           </div>
+
           {intents.length > 0 && (
             <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e8ecf1", padding: 22, marginBottom: 28 }}>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: "#0f1b2d", margin: "0 0 16px" }}>Top Intents</h3>
@@ -317,6 +330,7 @@
               </div>
             </div>
           )}
+
           <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e8ecf1", padding: 22 }}>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: "#0f1b2d", margin: "0 0 16px" }}>Recent Conversations</h3>
             {conversations.length === 0 ? <EmptyState message="No conversations yet" /> : (
@@ -384,6 +398,7 @@
               ))}
             </div>
           </div>
+
           <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e8ecf1", padding: 22 }}>
             {conversations.length === 0 ? <EmptyState message="No conversations yet" /> : (
               <div style={{ overflowX: "auto" }}>
@@ -483,12 +498,14 @@
             <h2 style={{ fontSize: 22, fontWeight: 700, color: "#0f1b2d", margin: 0 }}>Leads</h2>
             <p style={{ color: "#8896a7", fontSize: 14, margin: "4px 0 0" }}>{leads.length} captured</p>
           </div>
+
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 14, marginBottom: 24 }}>
             <StatCard icon="users" label="New Leads" value={leads.filter(l => l.urgency !== "emergency").length} color="#3b82f6" />
             <StatCard icon="alert" label="Emergencies" value={leads.filter(l => l.urgency === "emergency").length} color="#ef4444" />
             <StatCard icon="phone" label="From Voice" value={leads.filter(l => l.source_channel === "voice").length} color="#8b5cf6" />
             <StatCard icon="sms" label="From SMS/Chat" value={leads.filter(l => l.source_channel !== "voice").length} color="#10b981" />
           </div>
+
           <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e8ecf1", padding: 22 }}>
             {leads.length === 0 ? <EmptyState message="No leads captured yet" /> : (
               <div style={{ overflowX: "auto" }}>
@@ -522,8 +539,6 @@
 
     // ═══════════════════════════════════════════════════════
     // PAGE: Knowledge Base
-    // FIX: Replaced window.confirm() with inline confirm UI so delete works
-    //      in all browsers/environments. Added deleteConfirmId state.
     // ═══════════════════════════════════════════════════════
     const KnowledgeBasePage = () => {
       const [entries, setEntries] = useState([]);
@@ -533,7 +548,6 @@
       const [newEntry, setNewEntry] = useState({ category: "faq", question: "", answer: "", priority: 5 });
       const [editId, setEditId] = useState(null);
       const [editData, setEditData] = useState({});
-      const [deleteConfirmId, setDeleteConfirmId] = useState(null); // FIX: replaces window.confirm
       const [toast, setToast] = useState("");
 
       const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 3000); };
@@ -555,14 +569,13 @@
         finally { setSaving(false); }
       }
 
-      // FIX: no more confirm() — deleteConfirmId controls inline UI
       async function handleDelete(id) {
+        if (!confirm("Delete this entry?")) return;
         try {
           await apiFetch(`/api/v1/client/knowledge-base/${id}`, { method: "DELETE" });
           setEntries(entries.filter(e => e.id !== id));
-          setDeleteConfirmId(null);
           showToast("Deleted ✓");
-        } catch (err) { showToast("Failed to delete: " + err.message); }
+        } catch (err) { showToast("Failed to delete"); }
       }
 
       function handleEditStart(entry) {
@@ -651,25 +664,16 @@
                       <div style={{ fontSize: 14, fontWeight: 600, color: "#0f1b2d", marginBottom: 4 }}>{e.question}</div>
                       <div style={{ fontSize: 13, color: "#3d4f63", lineHeight: 1.55 }}>{e.answer}</div>
                     </div>
-                    <div style={{ display: "flex", gap: 8, flexShrink: 0, alignItems: "center" }}>
+                    <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
                       <button onClick={() => handleToggle(e)} style={{ padding: "6px 12px", borderRadius: 7, border: "1px solid #d4d9e0", cursor: "pointer", background: "#fff", fontSize: 11, fontWeight: 600, color: e.is_active ? "#10b981" : "#adb5c2" }}>
                         {e.is_active ? "Active" : "Inactive"}
                       </button>
                       <button onClick={() => handleEditStart(e)} style={{ padding: "6px 10px", borderRadius: 7, border: "1px solid #d4d9e0", cursor: "pointer", background: "#fff", color: "#3d4f63" }}>
                         <Icon name="edit" size={14} />
                       </button>
-                      {/* FIX: inline confirm instead of window.confirm() */}
-                      {deleteConfirmId === e.id ? (
-                        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                          <span style={{ fontSize: 11, color: "#ef4444", fontWeight: 600, whiteSpace: "nowrap" }}>Delete?</span>
-                          <button onClick={() => handleDelete(e.id)} style={{ padding: "5px 10px", borderRadius: 7, border: "none", cursor: "pointer", background: "#ef4444", color: "#fff", fontSize: 11, fontWeight: 700 }}>Yes</button>
-                          <button onClick={() => setDeleteConfirmId(null)} style={{ padding: "5px 10px", borderRadius: 7, border: "1px solid #d4d9e0", cursor: "pointer", background: "#fff", color: "#3d4f63", fontSize: 11 }}>No</button>
-                        </div>
-                      ) : (
-                        <button onClick={() => setDeleteConfirmId(e.id)} style={{ padding: "6px 10px", borderRadius: 7, border: "1px solid #fecaca", cursor: "pointer", background: "#fff", color: "#ef4444" }}>
-                          <Icon name="trash" size={14} />
-                        </button>
-                      )}
+                      <button onClick={() => handleDelete(e.id)} style={{ padding: "6px 10px", borderRadius: 7, border: "1px solid #fecaca", cursor: "pointer", background: "#fff", color: "#ef4444" }}>
+                        <Icon name="trash" size={14} />
+                      </button>
                     </div>
                   </div>
                 )}
@@ -680,44 +684,24 @@
       );
     };
 
-    // ═══════════════════════════════════════════════════════
-    // PAGE: Settings
-    // ═══════════════════════════════════════════════════════
-    // ─── Settings constants & InputField — defined at MODULE level so React
-    //     never remounts the input on keystroke (prevents focus loss bug) ───────
-    const BRECHTLAND_GREETING = "Thanks for calling Brechtland! We build custom websites and AI receptionists for local service businesses. How can I help you today?";
-    const BRECHTLAND_INSTRUCTIONS = "You are the AI receptionist for Brechtland, a digital agency based in Florida. We offer done-for-you website subscriptions starting at $149/mo and a 24/7 AI Receptionist for $497/mo flat. We also offer done-for-you email marketing. When a caller asks about getting a website or AI receptionist, invite them to book a free 15-minute strategy call — no obligation. Websites go live in 7–10 business days. The AI Receptionist activates within 48 hours of sign-up. Never guarantee specific search rankings or lead counts. For billing disputes or partnership inquiries, let the caller know Tyler will follow up personally within one business day.";
-
-    const INDUSTRIES = [
-      { value: "general",         label: "General" },
-      { value: "roofing",         label: "Roofing" },
-      { value: "plumbing",        label: "Plumbing" },
-      { value: "hvac",            label: "HVAC" },
-      { value: "electrical",      label: "Electrical" },
-      { value: "dental",          label: "Dental" },
-      { value: "real_estate",     label: "Real Estate" },
-      { value: "restaurant",      label: "Restaurant" },
-      { value: "landscaping",     label: "Landscaping" },
-      { value: "detailing",       label: "Auto Detailing" },
-      { value: "epoxy_flooring",  label: "Epoxy Flooring" },
-      { value: "window_cleaning", label: "Window Cleaning" },
-      { value: "fitness",         label: "Fitness / Gym" },
-      { value: "digital_agency",  label: "Digital Agency" },
-    ];
-
-    const InputField = ({ label, value, onChange, type = "text", placeholder, hint, suggestText }) => (
+    // ─── Settings sub-component (defined outside to preserve focus) ─────────────
+    const SettingsField = ({ label, value, onChange, type, placeholder, hint, readOnly }) => (
       <div style={{ marginBottom: 18 }}>
         <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#3d4f63", marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</label>
         {type === "textarea"
-          ? <textarea value={value || ""} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={3} style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid #d4d9e0", fontSize: 13, outline: "none", resize: "vertical", fontFamily: "inherit" }} />
-          : <input type={type} value={value || ""} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid #d4d9e0", fontSize: 13, outline: "none" }} />
+          ? <textarea value={value || ""} onChange={e => !readOnly && onChange(e.target.value)} readOnly={readOnly} rows={3}
+              style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid #d4d9e0", fontSize: 13, outline: "none", resize: "vertical", fontFamily: "inherit", background: readOnly ? "#f8f9fb" : "#fff", color: readOnly ? "#8896a7" : "#0f1b2d" }} />
+          : <input type={type || "text"} value={value || ""} onChange={e => !readOnly && onChange && onChange(e.target.value)} readOnly={readOnly}
+              style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid #d4d9e0", fontSize: 13, outline: "none", background: readOnly ? "#f8f9fb" : "#fff", color: readOnly ? "#8896a7" : "#0f1b2d" }} />
         }
-        {hint && <div style={{ fontSize: 11, color: "#adb5c2", marginTop: 4 }}>{hint}</div>}
-        {suggestText && <button onClick={() => onChange(suggestText)} type="button" style={{ fontSize: 11, color: "#1b3a5c", background: "none", border: "none", cursor: "pointer", padding: "2px 0", fontWeight: 600, textDecoration: "underline", display: "block", marginTop: 4 }}>↻ Prefill Brechtland default</button>}
+        {hint && <div style={{ fontSize: 11, color: readOnly ? "#c8cfd8" : "#adb5c2", marginTop: 4 }}>{hint}</div>}
       </div>
     );
 
-    const SettingsPage = ({ onSettingsUpdate }) => {
+    // ═══════════════════════════════════════════════════════
+    // PAGE: Settings
+    // ═══════════════════════════════════════════════════════
+    const SettingsPage = () => {
       const [biz, setBiz] = useState(null);
       const [loading, setLoading] = useState(true);
       const [saving, setSaving] = useState(false);
@@ -746,7 +730,6 @@
             }
           });
           showToast("Settings saved ✓");
-          if (onSettingsUpdate) onSettingsUpdate({ name: biz.name, industry: biz.industry });
         } catch (err) {
           showToast("Failed to save: " + err.message);
         } finally {
@@ -764,6 +747,7 @@
       return (
         <div>
           {toast && <div style={{ position: "fixed", bottom: 24, right: 24, background: "#0f1b2d", color: "#fff", padding: "12px 20px", borderRadius: 10, fontSize: 13, fontWeight: 600, zIndex: 9999, boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>{toast}</div>}
+
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28 }}>
             <div>
               <h2 style={{ fontSize: 22, fontWeight: 700, color: "#0f1b2d", margin: 0 }}>Settings</h2>
@@ -773,15 +757,17 @@
               {saving ? "Saving..." : "Save Changes"}
             </button>
           </div>
+
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
             <div>
               <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e8ecf1", padding: 22, marginBottom: 18 }}>
                 <h3 style={{ fontSize: 15, fontWeight: 700, color: "#0f1b2d", margin: "0 0 16px" }}>Business Information</h3>
-                <InputField label="Business Name" value={biz.name} onChange={v => setBiz({...biz, name: v})} hint="How callers hear your business name in the AI greeting" />
-                <InputField label="Phone Number" value={biz.phone_number} onChange={v => setBiz({...biz, phone_number: v})} />
-                <InputField label="Email" value={biz.email} onChange={() => {}} hint="Contact Brechtland to change your email" />
-                <InputField label="Website" value={biz.website_url} onChange={v => setBiz({...biz, website_url: v})} />
+                <SettingsField label="Business Name" value={biz.name} onChange={v => setBiz({...biz, name: v})} hint="This is how your business name appears to callers" />
+                <SettingsField label="Phone Number" value={biz.phone_number} onChange={v => setBiz({...biz, phone_number: v})} />
+                <SettingsField label="Email" value={biz.email} onChange={() => {}} readOnly={true} hint="Contact Brechtland to change your email" />
+                <SettingsField label="Website" value={biz.website_url} onChange={v => setBiz({...biz, website_url: v})} />
               </div>
+
               <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e8ecf1", padding: 22 }}>
                 <h3 style={{ fontSize: 15, fontWeight: 700, color: "#0f1b2d", margin: "0 0 16px" }}>Business Hours</h3>
                 {days.map(d => (
@@ -808,22 +794,23 @@
                 ))}
               </div>
             </div>
+
             <div>
               <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e8ecf1", padding: 22, marginBottom: 18 }}>
                 <h3 style={{ fontSize: 15, fontWeight: 700, color: "#0f1b2d", margin: "0 0 16px" }}>AI Receptionist</h3>
-                <InputField label="Greeting Message" value={biz.greeting_message} type="textarea" onChange={v => setBiz({...biz, greeting_message: v})}
-                  hint="The first thing callers hear when they call"
-                  suggestText={BRECHTLAND_GREETING} />
-                <InputField label="Custom Instructions" value={biz.system_prompt} type="textarea" onChange={v => setBiz({...biz, system_prompt: v})}
+                <SettingsField label="Greeting Message" value={biz.greeting_message} type="textarea" onChange={v => setBiz({...biz, greeting_message: v})}
+                  hint="The first thing callers hear when they call" />
+                <SettingsField label="Custom Instructions" value={biz.system_prompt} type="textarea" onChange={v => setBiz({...biz, system_prompt: v})}
                   placeholder="Add any special instructions for your AI receptionist..."
-                  hint="These override the default industry template where applicable"
-                  suggestText={BRECHTLAND_INSTRUCTIONS} />
+                  hint="These override the default industry template where applicable" />
               </div>
+
               <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e8ecf1", padding: 22, marginBottom: 18 }}>
                 <h3 style={{ fontSize: 15, fontWeight: 700, color: "#0f1b2d", margin: "0 0 16px" }}>Escalation</h3>
-                <InputField label="Escalation Phone" value={biz.escalation_phone} onChange={v => setBiz({...biz, escalation_phone: v})}
+                <SettingsField label="Escalation Phone" value={biz.escalation_phone} onChange={v => setBiz({...biz, escalation_phone: v})}
                   hint="Where calls get transferred when the AI can't handle it" />
               </div>
+
               <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e8ecf1", padding: 22 }}>
                 <h3 style={{ fontSize: 15, fontWeight: 700, color: "#0f1b2d", margin: "0 0 16px" }}>Your AI Receptionist Number</h3>
                 <div style={{ background: "#f8f9fb", borderRadius: 10, padding: 14 }}>
@@ -832,15 +819,24 @@
                   <div style={{ fontSize: 11, color: "#adb5c2", marginTop: 4 }}>Forward your business line here, or use this as your main number</div>
                 </div>
                 <div style={{ marginTop: 14 }}>
-                  <div style={{ marginBottom: 14 }}>
+                  <div style={{ marginBottom: 10 }}>
                     <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#3d4f63", marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.5 }}>Industry</label>
-                    <select value={biz.industry || "general"} onChange={e => setBiz({...biz, industry: e.target.value})}
+                    <select value={biz.industry || ""} onChange={e => setBiz({...biz, industry: e.target.value})}
                       style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid #d4d9e0", fontSize: 13, outline: "none", background: "#fff", color: "#0f1b2d" }}>
-                      {INDUSTRIES.map(ind => (
-                        <option key={ind.value} value={ind.value}>{ind.label}</option>
-                      ))}
+                      <option value="roofing">Roofing</option>
+                      <option value="hvac">HVAC</option>
+                      <option value="plumbing">Plumbing</option>
+                      <option value="electrical">Electrical</option>
+                      <option value="dental">Dental</option>
+                      <option value="real_estate">Real Estate</option>
+                      <option value="restaurant">Restaurant</option>
+                      <option value="landscaping">Landscaping</option>
+                      <option value="detailing">Auto Detailing</option>
+                      <option value="epoxy_flooring">Epoxy Flooring</option>
+                      <option value="window_cleaning">Window Cleaning</option>
+                      <option value="fitness">Fitness / Gym</option>
+                      <option value="general">Other / General</option>
                     </select>
-                    <div style={{ fontSize: 11, color: "#adb5c2", marginTop: 4 }}>Sets the default AI persona and industry knowledge base</div>
                   </div>
                   <div style={{ fontSize: 12, color: "#8896a7" }}>Timezone: <strong style={{ color: "#0f1b2d" }}>{biz.timezone}</strong></div>
                 </div>
@@ -851,7 +847,8 @@
       );
     };
 
-    // ─── AI Profile sub-components ──────────────────────────────────────────
+
+    // ─── AI Profile sub-components (defined outside to preserve focus) ──────────
     const ProfileField = ({ label, name, type, placeholder, hint, rows, profile, set }) => (
       <div style={{ marginBottom: 18 }}>
         <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#3d4f63", marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</label>
@@ -893,10 +890,8 @@
 
     // ═══════════════════════════════════════════════════════
     // PAGE: AI Profile
-    // FIX: accepts onBusinessNameUpdate prop; calls it after save so the
-    //      sidebar reflects the new business name immediately.
     // ═══════════════════════════════════════════════════════
-    const AIProfilePage = ({ industry, onBusinessNameUpdate }) => {
+    const AIProfilePage = ({ industry }) => {
       const [profile, setProfile] = useState({});
       const [loading, setLoading] = useState(true);
       const [saving, setSaving] = useState(false);
@@ -925,10 +920,6 @@
             body: { business_profile: profile }
           });
           showToast("AI Profile saved — your receptionist has been updated instantly ✓", true);
-          // FIX: push the new business name up to App so the sidebar updates
-          if (onBusinessNameUpdate && profile.business_name) {
-            onBusinessNameUpdate(profile.business_name);
-          }
         } catch (err) {
           showToast("Failed to save: " + err.message, false);
         } finally {
@@ -947,6 +938,7 @@
               {toast}
             </div>
           )}
+
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
             <div>
               <h2 style={{ fontSize: 22, fontWeight: 700, color: "#0f1b2d", margin: 0 }}>AI Profile</h2>
@@ -956,7 +948,10 @@
               {saving ? "Saving..." : "Save & Update AI"}
             </button>
           </div>
+
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
+
+            {/* Left column */}
             <div>
               <ProfileCard title="🏢 Business Basics">
                 <ProfileField profile={profile} set={set} name="business_name" label="Business Name" placeholder="As you want the AI to say it on every call" hint="The AI greets callers with this name" />
@@ -967,20 +962,25 @@
                 <ProfileRadio profile={profile} set={set} name="free_estimates" label="Free Estimates?" options={[{v:"yes",l:"Yes"},{v:"sometimes",l:"Sometimes"},{v:"no",l:"No"}]} />
                 <ProfileRadio profile={profile} set={set} name="financing" label="Financing Available?" options={[{v:"yes",l:"Yes"},{v:"sometimes",l:"Case by case"},{v:"no",l:"No"}]} />
               </ProfileCard>
+
               <ProfileCard title="⭐ What Makes You Different">
                 <ProfileField profile={profile} set={set} name="unique_selling_points" label="Competitive Advantages" type="textarea" placeholder={"- Licensed and insured | - Same-day service available | - 10-year labor warranty | - Family-owned, not a franchise"} rows={5} hint="The AI will use these when callers ask why they should choose you" />
                 <ProfileField profile={profile} set={set} name="credentials" label="Licenses, Certifications & Awards" type="textarea" placeholder={"e.g. | - State Contractor License #12345 | - $2M liability insurance | - BBB A+ rated"} rows={4} />
               </ProfileCard>
+
               <ProfileCard title="🧠 AI Instructions">
                 <ProfileField profile={profile} set={set} name="always_say" label="Always Say / Mention" type="textarea" placeholder="e.g. Always mention we offer a free inspection. Always bring up our financing." rows={3} />
                 <ProfileField profile={profile} set={set} name="never_say" label="Never Say / Promise" type="textarea" placeholder="e.g. Never quote exact prices. Never promise same-day without checking availability." rows={3} />
                 <ProfileField profile={profile} set={set} name="additional_info" label="Anything Else the AI Should Know" type="textarea" placeholder="Seasonal promos, awards, special programs, team size — anything that helps the AI represent you better." rows={4} />
               </ProfileCard>
             </div>
+
+            {/* Right column */}
             <div>
               <ProfileCard title="❓ Common Questions">
                 <ProfileField profile={profile} set={set} name="common_questions" label="FAQs — Questions & Answers" type="textarea" placeholder={"Q: How long does the job take? A: Most jobs are done in 1-2 days | Q: Are you licensed? A: Yes, fully licensed and insured in [state] | Q: Do you work with insurance? A: Yes, we handle the full claims process"} rows={8} hint="Write in Q: / A: format. The AI will use these to answer caller questions accurately." />
               </ProfileCard>
+
               <ProfileCard title="🚨 Emergency & Operations">
                 <ProfileRadio profile={profile} set={set} name="emergency_service" label="Emergency / Same-Day Service?" options={[{v:"yes",l:"Yes"},{v:"no",l:"No"}]} />
                 <ProfileField profile={profile} set={set} name="emergency_details" label="Emergency Details & Response Time" type="textarea" placeholder="What counts as an emergency? How fast do you respond? e.g. Active leaks, same-day dispatch within 4 hours." rows={3} />
@@ -989,11 +989,13 @@
                 <ProfileField profile={profile} set={set} name="service_restrictions" label="Areas or Jobs You Do NOT Take" type="textarea" placeholder="e.g. No jobs over 50 miles from Dallas. No commercial properties over 3 stories." rows={3} />
                 <ProfileRadio profile={profile} set={set} name="after_hours_booking" label="Book Appointments After Hours?" options={[{v:"yes",l:"Yes - book 24/7"},{v:"no",l:"No - take a message only"}]} hint="Controls what the AI does when someone calls outside business hours" />
               </ProfileCard>
+
               <ProfileCard title="📞 Call Handling">
                 <ProfileField profile={profile} set={set} name="escalation_notes" label="Always Escalate to a Human For..." type="textarea" placeholder="e.g. Insurance claims, jobs over $10k, any mention of a lawsuit, existing customer complaints" rows={3} hint="These situations will always be transferred to your escalation number" />
               </ProfileCard>
             </div>
           </div>
+
           <div style={{ textAlign: "center", marginTop: 8, marginBottom: 32 }}>
             <button onClick={handleSave} disabled={saving} style={{ padding: "13px 40px", borderRadius: 10, border: "none", cursor: "pointer", background: "#1b3a5c", color: "#fff", fontSize: 14, fontWeight: 700, opacity: saving ? 0.7 : 1 }}>
               {saving ? "Saving..." : "Save & Update AI"}
@@ -1006,14 +1008,14 @@
 
     // ═══════════════════════════════════════════════════════
     // MAIN APP
-    // FIX: added handleBusinessNameUpdate + passes it to AIProfilePage
     // ═══════════════════════════════════════════════════════
     function App() {
-      const [authState, setAuthState] = useState("checking");
+      const [authState, setAuthState] = useState("checking"); // "checking" | "authed" | "unauthed"
       const [business, setBusiness] = useState(null);
       const [page, setPage] = useState("overview");
       const [selectedConversation, setSelectedConversation] = useState(null);
 
+      // Check for existing token on load
       useEffect(() => {
         const token = localStorage.getItem("br_token");
         if (!token) { setAuthState("unauthed"); return; }
@@ -1023,16 +1025,6 @@
       }, []);
 
       function handleAuth(biz) { setBusiness(biz); setAuthState("authed"); }
-
-      // Updates sidebar name when AI Profile is saved
-      function handleBusinessNameUpdate(name) {
-        setBusiness(b => ({ ...b, name }));
-      }
-
-      // Updates sidebar name + industry when Settings page is saved
-      function handleSettingsUpdate({ name, industry }) {
-        setBusiness(b => ({ ...b, name, industry }));
-      }
 
       function handleLogout() {
         localStorage.removeItem("br_token");
@@ -1117,9 +1109,9 @@
             {page === "overview" && <OverviewPage onViewConversation={setSelectedConversation} />}
             {page === "conversations" && <ConversationsPage onViewConversation={setSelectedConversation} />}
             {page === "leads" && <LeadsPage />}
-            {page === "ai-profile" && <AIProfilePage industry={business?.industry} onBusinessNameUpdate={handleBusinessNameUpdate} />}
+            {page === "ai-profile" && <AIProfilePage industry={business?.industry} />}
             {page === "knowledge" && <KnowledgeBasePage />}
-            {page === "settings" && <SettingsPage onSettingsUpdate={handleSettingsUpdate} />}
+            {page === "settings" && <SettingsPage />}
           </div>
 
           {/* ─── Conversation Detail Panel ─── */}
