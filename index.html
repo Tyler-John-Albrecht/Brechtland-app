@@ -67,6 +67,11 @@
         trash: <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
         logout: <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
         brain: <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-1.04-3.04A3 3 0 0 1 3 13a3 3 0 0 1 .5-1.67A2.5 2.5 0 0 1 4.5 7 2.5 2.5 0 0 1 9.5 2z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 1.04-3.04A3 3 0 0 0 21 13a3 3 0 0 0-.5-1.67A2.5 2.5 0 0 0 19.5 7 2.5 2.5 0 0 0 14.5 2z"/></svg>,
+        mail: <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>,
+        upload: <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>,
+        send: <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>,
+        eye: <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
+        sparkle: <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
       };
       return icons[name] || null;
     };
@@ -1007,6 +1012,360 @@
     };
 
     // ═══════════════════════════════════════════════════════
+    // EMAIL MARKETING — shared helpers
+    // ═══════════════════════════════════════════════════════
+    const EM_API = (path, opts) => apiFetch('/api/v1/em' + path, opts);
+
+    const EM_PURPLE = '#7C3AED';
+    const emStatusColor = (s) => s === 'sent' ? '#10b981' : s === 'failed' ? '#ef4444' : s === 'scheduled' ? '#3b82f6' : '#6b7280';
+    const emCampaignLabel = (t) => ({ welcome: 'Welcome', monthly: 'Newsletter', review_request: 'Review Ask', seasonal: 'Seasonal', reengagement: 'Re-engage', custom: 'Custom' }[t] || t);
+
+    // ─── EM Contacts Tab ─────────────────────────────────────
+    const EMContactsTab = ({ emClient }) => {
+      const [contacts, setContacts] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [uploading, setUploading] = useState(false);
+      const [csvError, setCsvError] = useState('');
+      const [toast, setToast] = useState('');
+      const [search, setSearch] = useState('');
+      const fileRef = useRef(null);
+
+      const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
+
+      useEffect(() => {
+        EM_API('/contacts').then(setContacts).catch(console.error).finally(() => setLoading(false));
+      }, []);
+
+      function parseCSV(text) {
+        const lines = text.trim().split('\n').filter(l => l.trim());
+        if (lines.length < 2) throw new Error('CSV needs a header row + at least one data row.');
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/['"]/g, ''));
+        const emailIdx = headers.findIndex(h => h === 'email');
+        const firstIdx = headers.findIndex(h => h === 'first_name' || h === 'firstname' || h === 'first');
+        const phoneIdx = headers.findIndex(h => h === 'phone' || h === 'phone_number');
+        if (emailIdx === -1) throw new Error('CSV must have an "email" column.');
+        const rows = [];
+        for (let i = 1; i < lines.length; i++) {
+          const cols = lines[i].split(',').map(c => c.trim().replace(/^["']|["']$/g, ''));
+          const email = cols[emailIdx];
+          if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) continue;
+          rows.push({ first_name: firstIdx >= 0 ? (cols[firstIdx] || '') : '', email, phone: phoneIdx >= 0 ? (cols[phoneIdx] || '') : '' });
+        }
+        return rows;
+      }
+
+      async function handleFileChange(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        setCsvError('');
+        setUploading(true);
+        try {
+          const text = await file.text();
+          const parsed = parseCSV(text);
+          if (parsed.length === 0) throw new Error('No valid email addresses found in CSV.');
+          const result = await EM_API('/contacts/bulk', { method: 'POST', body: { contacts: parsed } });
+          const fresh = await EM_API('/contacts');
+          setContacts(fresh);
+          showToast(`Imported ${result.imported} contacts ✓`);
+        } catch (err) { setCsvError(err.message); }
+        finally { setUploading(false); if (e.target) e.target.value = ''; }
+      }
+
+      async function handleUnsubscribe(contact) {
+        if (!confirm(`Remove ${contact.email} from your list?`)) return;
+        try {
+          await EM_API(`/contacts/${contact.id}/unsubscribe`, { method: 'POST' });
+          setContacts(c => c.map(x => x.id === contact.id ? { ...x, status: 'unsubscribed' } : x));
+          showToast('Contact unsubscribed ✓');
+        } catch { showToast('Failed — try again.'); }
+      }
+
+      const subscribed = contacts.filter(c => c.status === 'subscribed').length;
+      const visible = contacts.filter(c => !search || c.email.includes(search) || (c.first_name || '').toLowerCase().includes(search.toLowerCase()));
+
+      const cellStyle = { padding: '10px 10px', color: '#3d4f63', fontSize: 13 };
+      const thStyle = { textAlign: 'left', padding: '8px 10px', color: '#8896a7', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 };
+
+      if (loading) return <Spinner />;
+
+      return (
+        <div>
+          {toast && <div style={{ position: 'fixed', bottom: 24, right: 24, background: '#0f1b2d', color: '#fff', padding: '12px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600, zIndex: 9999 }}>{toast}</div>}
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 22 }}>
+            <StatCard icon="users" label="Total Contacts" value={contacts.length} color={EM_PURPLE} />
+            <StatCard icon="check" label="Subscribed" value={subscribed} color="#10b981" />
+            <StatCard icon="x" label="Unsubscribed" value={contacts.length - subscribed} color="#6b7280" sub={`Limit: ${emClient.contact_limit}`} />
+          </div>
+
+          <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e8ecf1', padding: 22, marginBottom: 18 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: '#0f1b2d', margin: '0 0 6px' }}>Upload Contact List</h3>
+            <p style={{ fontSize: 13, color: '#8896a7', margin: '0 0 14px' }}>CSV columns: <strong>email</strong> (required), first_name, phone. Duplicates are skipped automatically.</p>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+              <button onClick={() => fileRef.current && fileRef.current.click()} disabled={uploading}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 18px', borderRadius: 9, border: 'none', cursor: 'pointer', background: EM_PURPLE, color: '#fff', fontSize: 13, fontWeight: 600, opacity: uploading ? 0.7 : 1 }}>
+                <Icon name="upload" size={15} />{uploading ? 'Importing…' : 'Choose CSV File'}
+              </button>
+              <input ref={fileRef} type="file" accept=".csv,text/csv" onChange={handleFileChange} style={{ display: 'none' }} />
+              <span style={{ fontSize: 12, color: '#adb5c2' }}>{contacts.length} / {emClient.contact_limit} contacts used</span>
+            </div>
+            {csvError && <div style={{ marginTop: 10, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '9px 13px', fontSize: 13, color: '#dc2626' }}>{csvError}</div>}
+          </div>
+
+          <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e8ecf1', padding: 22 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: '#0f1b2d', margin: 0 }}>Contact List ({contacts.length})</h3>
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…"
+                style={{ padding: '7px 12px', borderRadius: 8, border: '1px solid #d4d9e0', fontSize: 13, outline: 'none', width: 180 }} />
+            </div>
+            {contacts.length === 0 ? <EmptyState message="No contacts yet — upload a CSV to get started." /> : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid #f0f2f5' }}>
+                      {['Name', 'Email', 'Phone', 'Status', 'Added', ''].map(h => <th key={h} style={thStyle}>{h}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visible.map(c => (
+                      <tr key={c.id} style={{ borderBottom: '1px solid #f5f6f8' }}>
+                        <td style={{ ...cellStyle, fontWeight: 600, color: '#0f1b2d' }}>{c.first_name || '—'}</td>
+                        <td style={cellStyle}>{c.email}</td>
+                        <td style={cellStyle}>{c.phone || '—'}</td>
+                        <td style={cellStyle}><Badge label={c.status} color={c.status === 'subscribed' ? '#10b981' : '#6b7280'} /></td>
+                        <td style={cellStyle}>{c.created_at ? fmt.date(c.created_at) : '—'}</td>
+                        <td style={{ padding: '10px' }}>
+                          {c.status === 'subscribed' && (
+                            <button onClick={() => handleUnsubscribe(c)} style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid #fecaca', cursor: 'pointer', background: '#fff', color: '#ef4444', fontSize: 11, fontWeight: 600 }}>Remove</button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    // ─── EM Campaigns Tab ────────────────────────────────────
+    const EMCampaignsTab = () => {
+      const [campaigns, setCampaigns] = useState([]);
+      const [loading, setLoading] = useState(true);
+
+      useEffect(() => {
+        EM_API('/campaigns').then(setCampaigns).catch(console.error).finally(() => setLoading(false));
+      }, []);
+
+      const thStyle = { textAlign: 'left', padding: '8px 10px', color: '#8896a7', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 };
+      const cellStyle = { padding: '11px 10px', fontSize: 13, color: '#3d4f63' };
+
+      if (loading) return <Spinner />;
+
+      return (
+        <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e8ecf1', padding: 22 }}>
+          <div style={{ marginBottom: 16 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: '#0f1b2d', margin: '0 0 4px' }}>All Campaigns</h3>
+            <p style={{ fontSize: 13, color: '#8896a7', margin: 0 }}>Your monthly campaigns are auto-generated and scheduled. Use Custom Campaign for one-offs.</p>
+          </div>
+          {campaigns.length === 0 ? <EmptyState message="No campaigns yet — they appear here as they're scheduled." /> : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid #f0f2f5' }}>
+                    {['Type', 'Subject', 'Scheduled', 'Sent', 'Status'].map(h => <th key={h} style={thStyle}>{h}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {campaigns.map(c => (
+                    <tr key={c.id} style={{ borderBottom: '1px solid #f5f6f8' }}>
+                      <td style={cellStyle}><Badge label={emCampaignLabel(c.campaign_type)} color={EM_PURPLE} /></td>
+                      <td style={{ ...cellStyle, fontWeight: 600, color: '#0f1b2d', maxWidth: 280 }}>{c.subject}</td>
+                      <td style={cellStyle}>{c.scheduled_at ? fmt.datetime(c.scheduled_at) : '—'}</td>
+                      <td style={cellStyle}>{c.sent_at ? fmt.datetime(c.sent_at) : '—'}</td>
+                      <td style={cellStyle}><Badge label={c.status} color={emStatusColor(c.status)} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // ─── EM Custom Campaign Tab ───────────────────────────────
+    const EMCustomCampaignTab = ({ emClient }) => {
+      const [prompt, setPrompt] = useState('');
+      const [generating, setGenerating] = useState(false);
+      const [preview, setPreview] = useState(null);
+      const [scheduling, setScheduling] = useState(false);
+      const [scheduled, setScheduled] = useState(false);
+      const [toast, setToast] = useState('');
+
+      const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3500); };
+
+      async function handleGenerate() {
+        if (!prompt.trim()) return;
+        setGenerating(true);
+        setPreview(null);
+        setScheduled(false);
+        try {
+          const result = await EM_API('/campaigns/generate', { method: 'POST', body: { prompt } });
+          setPreview(result);
+        } catch (err) { showToast('Generation failed: ' + err.message); }
+        finally { setGenerating(false); }
+      }
+
+      async function handleSchedule() {
+        if (!preview) return;
+        setScheduling(true);
+        try {
+          await EM_API('/campaigns/schedule', { method: 'POST', body: preview });
+          setScheduled(true);
+          showToast('Campaign scheduled ✓');
+        } catch (err) { showToast('Failed to schedule: ' + err.message); }
+        finally { setScheduling(false); }
+      }
+
+      const accent = EM_PURPLE;
+
+      return (
+        <div>
+          {toast && <div style={{ position: 'fixed', bottom: 24, right: 24, background: '#0f1b2d', color: '#fff', padding: '12px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600, zIndex: 9999 }}>{toast}</div>}
+
+          <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e8ecf1', padding: 22, marginBottom: 18 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: '#0f1b2d', margin: '0 0 6px' }}>Describe Your Campaign</h3>
+            <p style={{ fontSize: 13, color: '#8896a7', margin: '0 0 14px' }}>Tell the AI what you want to send. Mention any specials, seasons, or goals. Be specific — it writes better that way.</p>
+            <textarea
+              value={prompt}
+              onChange={e => setPrompt(e.target.value)}
+              placeholder={"e.g. Running a summer special — 15% off all roof inspections booked in June. Want to create urgency before the rainy season. Drive people to call or book online."}
+              style={{ width: '100%', minHeight: 100, padding: '11px 14px', borderRadius: 10, border: '1px solid #d4d9e0', fontSize: 13, outline: 'none', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.6, boxSizing: 'border-box' }}
+            />
+            <button onClick={handleGenerate} disabled={generating || !prompt.trim()}
+              style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8, padding: '10px 22px', borderRadius: 9, border: 'none', cursor: 'pointer', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, opacity: (generating || !prompt.trim()) ? 0.6 : 1 }}>
+              <Icon name="sparkle" size={15} />{generating ? 'Generating…' : 'Generate Campaign'}
+            </button>
+          </div>
+
+          {preview && (
+            <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e8ecf1', padding: 22 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: '#0f1b2d', margin: '0 0 20px', paddingBottom: 14, borderBottom: '1px solid #f0f2f5' }}>Campaign Preview</h3>
+
+              {[
+                { label: 'Subject Line', value: preview.subject, big: true },
+                { label: 'Preview Text', value: preview.preview },
+              ].map(({ label, value, big }) => (
+                <div key={label} style={{ marginBottom: 18 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#8896a7', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 5 }}>{label}</div>
+                  <div style={{ fontSize: big ? 20 : 14, fontWeight: big ? 700 : 400, color: '#0f1b2d', lineHeight: 1.45 }}>{value}</div>
+                </div>
+              ))}
+
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#8896a7', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Email Body</div>
+                <div style={{ background: '#f8f9fb', borderRadius: 10, padding: '16px 18px', fontSize: 14, color: '#374151', lineHeight: 1.75 }}>{preview.body}</div>
+              </div>
+
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#8896a7', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>CTA Button</div>
+                <span style={{ display: 'inline-block', background: accent, color: '#fff', padding: '9px 22px', borderRadius: 8, fontSize: 13, fontWeight: 700 }}>{preview.cta}</span>
+              </div>
+
+              {scheduled ? (
+                <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 10, padding: '13px 16px', fontSize: 13, color: '#166534', fontWeight: 600 }}>
+                  ✓ Campaign scheduled — it will send to your subscribed contacts within 5 minutes.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button onClick={handleSchedule} disabled={scheduling}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 22px', borderRadius: 9, border: 'none', cursor: 'pointer', background: '#10b981', color: '#fff', fontSize: 13, fontWeight: 700, opacity: scheduling ? 0.7 : 1 }}>
+                    <Icon name="send" size={14} />{scheduling ? 'Scheduling…' : 'Approve & Send'}
+                  </button>
+                  <button onClick={() => setPreview(null)}
+                    style={{ padding: '10px 18px', borderRadius: 9, border: '1px solid #d4d9e0', cursor: 'pointer', background: '#fff', color: '#3d4f63', fontSize: 13, fontWeight: 600 }}>
+                    Regenerate
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // ─── Email Marketing Page ─────────────────────────────────
+    const EmailMarketingPage = () => {
+      const [emClient, setEmClient] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [notFound, setNotFound] = useState(false);
+      const [subTab, setSubTab] = useState('contacts');
+
+      useEffect(() => {
+        EM_API('/me')
+          .then(setEmClient)
+          .catch(() => setNotFound(true))
+          .finally(() => setLoading(false));
+      }, []);
+
+      if (loading) return <Spinner />;
+
+      if (notFound) return (
+        <div>
+          <div style={{ marginBottom: 28 }}>
+            <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0f1b2d', margin: 0 }}>Email Marketing</h2>
+          </div>
+          <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e8ecf1', padding: '48px 32px', textAlign: 'center' }}>
+            <div style={{ fontSize: 40, marginBottom: 14 }}>📧</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#0f1b2d', marginBottom: 8 }}>Email marketing not active on your account</div>
+            <div style={{ fontSize: 13, color: '#8896a7', marginBottom: 24 }}>Add email marketing to start sending campaigns to your customer list.</div>
+            <a href="https://brechtland.com/email-marketing" target="_blank" rel="noreferrer"
+              style={{ display: 'inline-block', padding: '11px 24px', borderRadius: 10, background: EM_PURPLE, color: '#fff', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+              View Plans
+            </a>
+          </div>
+        </div>
+      );
+
+      const tierLabel = emClient.tier ? emClient.tier.charAt(0).toUpperCase() + emClient.tier.slice(1) : '';
+
+      return (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+            <div>
+              <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0f1b2d', margin: 0 }}>Email Marketing</h2>
+              <p style={{ color: '#8896a7', fontSize: 13, margin: '4px 0 0' }}>
+                <Badge label={tierLabel + ' Plan'} color={EM_PURPLE} /> &nbsp; {emClient.campaigns_per_month} campaigns/mo · {emClient.contact_limit?.toLocaleString()} contact limit
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+            {[['contacts', 'users', 'Contacts'], ['campaigns', 'mail', 'Campaigns'], ['custom', 'sparkle', 'Custom Campaign']].map(([id, icon, label]) => (
+              <button key={id} onClick={() => setSubTab(id)} style={{
+                display: 'flex', alignItems: 'center', gap: 7,
+                padding: '8px 16px', borderRadius: 9, border: '1px solid',
+                background: subTab === id ? '#0f1b2d' : '#fff',
+                color: subTab === id ? '#fff' : '#3d4f63',
+                borderColor: subTab === id ? '#0f1b2d' : '#d4d9e0',
+                fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
+              }}>
+                <Icon name={icon} size={15} />{label}
+              </button>
+            ))}
+          </div>
+
+          {subTab === 'contacts' && <EMContactsTab emClient={emClient} />}
+          {subTab === 'campaigns' && <EMCampaignsTab />}
+          {subTab === 'custom' && <EMCustomCampaignTab emClient={emClient} />}
+        </div>
+      );
+    };
+
+    // ═══════════════════════════════════════════════════════
     // MAIN APP
     // ═══════════════════════════════════════════════════════
     function App() {
@@ -1051,6 +1410,7 @@
         { id: "leads", label: "Leads", icon: "target" },
         { id: "ai-profile", label: "AI Profile", icon: "brain" },
         { id: "knowledge", label: "Knowledge Base", icon: "book" },
+        { id: "email-marketing", label: "Email Marketing", icon: "mail" },
         { id: "settings", label: "Settings", icon: "settings" },
       ];
 
@@ -1111,6 +1471,7 @@
             {page === "leads" && <LeadsPage />}
             {page === "ai-profile" && <AIProfilePage industry={business?.industry} />}
             {page === "knowledge" && <KnowledgeBasePage />}
+            {page === "email-marketing" && <EmailMarketingPage />}
             {page === "settings" && <SettingsPage />}
           </div>
 
